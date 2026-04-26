@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover">
+  <title>多目标追踪 · 动态视觉训练</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif;
+      padding: 0.8rem;
+      margin: 0;
+    }
+    .game-container {
+      max-width: 600px;
+      width: 100%;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-radius: 2rem;
+      padding: 1.8rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      border: 1px solid #e0e0e0;
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .difficulty-badge {
+      background: #f0f0f0;
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #333;
+      border: 1px solid #ccc;
+    }
+    .instruction {
+      color: #666;
+      font-size: 0.8rem;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: -0.4rem;
+    }
+    .info-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #f9f9f9;
+      border-radius: 2rem;
+      padding: 0.7rem 1.2rem;
+      border: 1px solid #e0e0e0;
+      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      color: #1a1a1a;
+    }
+    .stat-box {
+      font-size: 0.9rem;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      padding: 0.3rem 0.9rem;
+      border-radius: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 400px;
+      border: 2px solid #1a1a1a;
+      border-radius: 1rem;
+      background: #fafafa;
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .phase-indicator {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+      min-height: 1.4rem;
+    }
+    .feedback-message {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #1a1a1a;
+      min-height: 1.2rem;
+    }
+    .actions {
+      display: flex;
+      gap: 0.6rem;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: white;
+      border: 2px solid #1a1a1a;
+      padding: 0.65rem 1.2rem;
+      border-radius: 2.5rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.6px;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: 0.1s linear;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      flex: 1 1 auto;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .btn:active {
+      background: #f0f0f0;
+      transform: scale(0.97);
+    }
+    .btn.primary {
+      background: #1a1a1a;
+      color: white;
+      border: 2px solid #1a1a1a;
+    }
+    .btn.difficulty-btn {
+      border: 2px solid #ccc;
+      color: #555;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+    }
+    .btn.difficulty-btn.active {
+      background: #1a1a1a;
+      color: white;
+      border-color: #1a1a1a;
+    }
+    .history-section {
+      width: 100%;
+      background: #fafafa;
+      border-radius: 1.5rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid #e0e0e0;
+    }
+    .history-title {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .history-list {
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      background: #fff;
+      padding: 0.35rem 0.8rem;
+      border-radius: 2rem;
+      border: 1px solid #e0e0e0;
+    }
+    .clear-btn {
+      background: transparent;
+      border: none;
+      color: #555;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.75rem;
+      text-decoration: underline;
+    }
+    @media (max-width: 450px) {
+      .game-container {
+        padding: 1.5rem 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <h1>多目标追踪 <span class="difficulty-badge" id="difficultyBadge">5目标</span></h1>
+  <div class="instruction">
+    记住高亮的黑色圆点 · 追踪它们移动 · 停止后点击找出
+  </div>
+
+  <div class="info-panel">
+    <div class="stat-box">命中 <span id="hitCount">0</span></div>
+    <div class="stat-box">误选 <span id="falseCount">0</span></div>
+    <div class="stat-box">轮次 <span id="roundCount">0</span>/5</div>
+  </div>
+
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="phase-indicator" id="phaseIndicator">准备开始</div>
+  <div class="feedback-message" id="feedbackMessage"></div>
+
+  <div class="actions" id="difficultyButtons">
+    <button class="btn difficulty-btn" data-targets="3">3目标</button>
+    <button class="btn difficulty-btn active" data-targets="5">5目标</button>
+    <button class="btn difficulty-btn" data-targets="7">7目标</button>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="startBtn">开始新训练</button>
+  </div>
+
+  <div class="history-section">
+    <div class="history-title">
+      <span>训练记录</span>
+      <button class="clear-btn" id="clearHistoryBtn">清空</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div style="color:#888;text-align:center;padding:0.6rem;">暂无记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const TOTAL_DOTS = 10;
+    const TOTAL_ROUNDS = 5;
+    const TRACKING_DURATION = 3000;
+    const DOT_RADIUS = 16;
+    const SPEED = 1.0;
+
+    let TARGET_COUNT = 5;
+
+    let dots = [];
+    let phase = 'idle';
+    let currentRound = 0;
+    let totalHits = 0;
+    let totalFalse = 0;
+    let animationId = null;
+    let phaseTimeout = null;
+    let canvas, ctx;
+    let canvasWidth, canvasHeight;
+
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const mainCanvas = document.getElementById('mainCanvas');
+    const phaseIndicator = document.getElementById('phaseIndicator');
+    const feedbackMessage = document.getElementById('feedbackMessage');
+    const hitSpan = document.getElementById('hitCount');
+    const falseSpan = document.getElementById('falseCount');
+    const roundSpan = document.getElementById('roundCount');
+    const startBtn = document.getElementById('startBtn');
+    const historyListDiv = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const difficultyBadge = document.getElementById('difficultyBadge');
+    const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+
+    difficultyBadge.textContent = `${TARGET_COUNT}目标`;
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const size = rect.width;
+      mainCanvas.width = size * (window.devicePixelRatio || 1);
+      mainCanvas.height = size * (window.devicePixelRatio || 1);
+      mainCanvas.style.width = size + 'px';
+      mainCanvas.style.height = size + 'px';
+      canvasWidth = size;
+      canvasHeight = size;
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      }
+    }
+
+    function initDots() {
+      dots = [];
+      const margin = DOT_RADIUS + 6;
+      const padding = DOT_RADIUS + 12;
+      for (let i = 0; i < TOTAL_DOTS; i++) {
+        const x = padding + Math.random() * (canvasWidth - padding * 2);
+        const y = padding + Math.random() * (canvasHeight - padding * 2);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = SPEED * (0.7 + Math.random() * 0.9);
+        dots.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          isTarget: false,
+          selected: false
+        });
+      }
+      const indices = Array.from({ length: TOTAL_DOTS }, (_, i) => i);
+      shuffleArray(indices);
+      for (let i = 0; i < TARGET_COUNT; i++) {
+        dots[indices[i]].isTarget = true;
+      }
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function updateDots() {
+      const margin = DOT_RADIUS + 3;
+      for (const dot of dots) {
+        dot.x += dot.vx;
+        dot.y += dot.vy;
+        if (dot.x < margin) { dot.x = margin; dot.vx *= -1; }
+        if (dot.x > canvasWidth - margin) { dot.x = canvasWidth - margin; dot.vx *= -1; }
+        if (dot.y < margin) { dot.y = margin; dot.vy *= -1; }
+        if (dot.y > canvasHeight - margin) { dot.y = canvasHeight - margin; dot.vy *= -1; }
+      }
+    }
+
+    function drawDots(showTargets = false) {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      for (const dot of dots) {
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
+        if (dot.selected && dot.isTarget) {
+          ctx.fillStyle = '#d4edda';
+          ctx.strokeStyle = '#2a7a2a';
+        } else if (dot.selected && !dot.isTarget) {
+          ctx.fillStyle = '#fce4e4';
+          ctx.strokeStyle = '#b33a3a';
+        } else if (showTargets && dot.isTarget) {
+          ctx.fillStyle = '#1a1a1a';
+          ctx.strokeStyle = '#1a1a1a';
+        } else {
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#1a1a1a';
+        }
+        ctx.lineWidth = 2.5;
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function stopAnimation() {
+      if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      if (phaseTimeout) { clearTimeout(phaseTimeout); phaseTimeout = null; }
+    }
+
+    function animateTracking() {
+      if (phase !== 'tracking') return;
+      updateDots();
+      drawDots(false);
+      animationId = requestAnimationFrame(animateTracking);
+    }
+
+    function startHighlightPhase() {
+      phase = 'highlight';
+      phaseIndicator.textContent = '记住这些黑色圆点';
+      feedbackMessage.textContent = '';
+      initDots();
+      drawDots(true);
+      phaseTimeout = setTimeout(() => { startTrackingPhase(); }, 2000);
+    }
+
+    function startTrackingPhase() {
+      phase = 'tracking';
+      phaseIndicator.textContent = '追踪它们移动...';
+      drawDots(false);
+      animateTracking();
+      phaseTimeout = setTimeout(() => { startSelectionPhase(); }, TRACKING_DURATION);
+    }
+
+    function startSelectionPhase() {
+      phase = 'selection';
+      stopAnimation();
+      drawDots(false);
+      phaseIndicator.textContent = '点击找出目标（共' + TARGET_COUNT + '个）';
+    }
+
+    function handleCanvasClick(e) {
+      if (phase !== 'selection') return;
+      const rect = mainCanvas.getBoundingClientRect();
+      const scaleX = canvasWidth / rect.width;
+      const scaleY = canvasHeight / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      let closestDot = null;
+      let closestDist = Infinity;
+      for (const dot of dots) {
+        const dx = dot.x - clickX;
+        const dy = dot.y - clickY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < DOT_RADIUS + 8 && dist < closestDist) {
+          closestDist = dist;
+          closestDot = dot;
+        }
+      }
+      if (!closestDot || closestDot.selected) return;
+      closestDot.selected = true;
+      if (closestDot.isTarget) {
+        totalHits++;
+        feedbackMessage.textContent = '命中';
+        feedbackMessage.style.color = '#2a7a2a';
+      } else {
+        totalFalse++;
+        feedbackMessage.textContent = '误选';
+        feedbackMessage.style.color = '#b33a3a';
+      }
+      updateStats();
+      drawSelectionFeedback();
+      const selectedTargets = dots.filter(d => d.isTarget && d.selected).length;
+      if (selectedTargets >= TARGET_COUNT) { finishRound(); }
+    }
+
+    function drawSelectionFeedback() {
+      drawDots(false);
+    }
+
+    function finishRound() {
+      stopAnimation();
+      phase = 'idle';
+      currentRound++;
+      updateStats();
+      drawDots(true);
+      phaseIndicator.textContent = currentRound >= TOTAL_ROUNDS ? '训练结束' : '本轮结束';
+      if (currentRound >= TOTAL_ROUNDS) {
+        endTraining();
+      } else {
+        phaseTimeout = setTimeout(() => { startHighlightPhase(); }, 1500);
+      }
+    }
+
+    function updateStats() {
+      hitSpan.textContent = totalHits;
+      falseSpan.textContent = totalFalse;
+      roundSpan.textContent = `${currentRound}/${TOTAL_ROUNDS}`;
+    }
+
+    function endTraining() {
+      const accuracy = (totalHits / (totalHits + totalFalse || 1) * 100).toFixed(1);
+      feedbackMessage.textContent = `完成，命中率 ${accuracy}%`;
+      feedbackMessage.style.color = '#1a1a1a';
+      phaseIndicator.textContent = '可开始新训练';
+      const record = {
+        targets: TARGET_COUNT,
+        rounds: TOTAL_ROUNDS,
+        hits: totalHits,
+        false: totalFalse,
+        accuracy: parseFloat(accuracy),
+        date: Date.now()
+      };
+      saveRecord(record);
+    }
+
+    function startTraining() {
+      stopAnimation();
+      currentRound = 0;
+      totalHits = 0;
+      totalFalse = 0;
+      updateStats();
+      feedbackMessage.textContent = '';
+      phaseIndicator.textContent = '准备...';
+      resizeCanvas();
+      startHighlightPhase();
+    }
+
+    const STORAGE_KEY = 'mot_training_records';
+    function getRecords() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+    }
+    function saveRecord(rec) {
+      const records = getRecords();
+      records.unshift(rec);
+      if (records.length > 20) records.pop();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderHistory();
+    }
+    function clearRecords() {
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+    }
+    function renderHistory() {
+      const records = getRecords();
+      historyListDiv.innerHTML = '';
+      if (!records.length) {
+        historyListDiv.innerHTML = '<div style="color:#888;text-align:center;padding:0.6rem;">暂无记录</div>';
+        return;
+      }
+      records.forEach((r, i) => {
+        const dateStr = r.date ? new Date(r.date).toLocaleString('zh-CN',{hour12:false}) : '';
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `<span>${r.targets}目标 命中率 ${r.accuracy}%</span><span style="color:#666;font-size:0.7rem;">${dateStr}</span>`;
+        historyListDiv.appendChild(div);
+      });
+    }
+
+    canvas = mainCanvas;
+    ctx = canvas.getContext('2d');
+    resizeCanvas();
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      if (phase === 'idle') drawDots(false);
+    });
+    mainCanvas.addEventListener('click', handleCanvasClick);
+    mainCanvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (touch) handleCanvasClick({ clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+
+    difficultyButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (phase !== 'idle') {
+          if (!confirm('切换难度将中断当前训练，确定吗？')) return;
+        }
+        stopAnimation();
+        phase = 'idle';
+        TARGET_COUNT = parseInt(btn.dataset.targets);
+        difficultyBadge.textContent = `${TARGET_COUNT}目标`;
+        difficultyButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRound = 0;
+        totalHits = 0;
+        totalFalse = 0;
+        updateStats();
+        feedbackMessage.textContent = '';
+        phaseIndicator.textContent = '准备开始';
+        drawDots(false);
+      });
+    });
+
+    startBtn.addEventListener('click', startTraining);
+    clearHistoryBtn.addEventListener('click', () => {
+      if (confirm('清空所有训练记录？')) clearRecords();
+    });
+
+    renderHistory();
+    drawDots(false);
+    phaseIndicator.textContent = '准备开始';
+  })();
+</script>
+</body>
+</html>

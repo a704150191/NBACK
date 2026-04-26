@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover">
+  <title>N-Back · 记忆力训练</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif;
+      padding: 0.8rem;
+      margin: 0;
+    }
+    .game-container {
+      max-width: 600px;
+      width: 100%;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-radius: 2rem;
+      padding: 1.8rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      border: 1px solid #e0e0e0;
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .n-level {
+      background: #f0f0f0;
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #333;
+      border: 1px solid #ccc;
+    }
+    .info-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #f9f9f9;
+      border-radius: 2rem;
+      padding: 0.7rem 1.2rem;
+      border: 1px solid #e0e0e0;
+      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      color: #1a1a1a;
+    }
+    .stat-box {
+      font-size: 0.95rem;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      padding: 0.3rem 0.9rem;
+      border-radius: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .grid-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+      width: 100%;
+    }
+    .position-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      width: 170px;
+      height: 170px;
+      background: transparent;
+      margin: 0 auto;
+    }
+    .pos-cell {
+      background: #ffffff;
+      border: 2px solid #ccc;
+      border-radius: 0.8rem;
+      aspect-ratio: 1 / 1;
+      transition: background 0.08s ease;
+    }
+    .pos-cell.active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+    }
+    .letter-display {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 2px;
+      border: 2px solid #e0e0e0;
+      border-radius: 1.5rem;
+      width: 120px;
+      background: #fafafa;
+    }
+    .rule-hint {
+      color: #999;
+      font-size: 0.75rem;
+      text-align: center;
+      line-height: 1.6;
+      margin-top: -0.3rem;
+    }
+    .feedback-text {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+      min-height: 1.3rem;
+    }
+    .response-buttons {
+      display: flex;
+      gap: 0.8rem;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: white;
+      border: 2px solid #1a1a1a;
+      padding: 0.7rem 1.5rem;
+      border-radius: 2.5rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.6px;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: 0.1s linear;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      flex: 1 1 auto;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .btn:active {
+      background: #f0f0f0;
+      transform: scale(0.97);
+    }
+    .btn.primary {
+      background: #1a1a1a;
+      color: white;
+      border: 2px solid #1a1a1a;
+    }
+    .btn.secondary {
+      border: 2px dashed #888;
+      color: #333;
+    }
+    .history-section {
+      width: 100%;
+      background: #fafafa;
+      border-radius: 1.5rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid #e0e0e0;
+    }
+    .history-title {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .history-list {
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      background: #fff;
+      padding: 0.35rem 0.8rem;
+      border-radius: 2rem;
+      border: 1px solid #e0e0e0;
+    }
+    .clear-btn {
+      background: transparent;
+      border: none;
+      color: #555;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.75rem;
+      text-decoration: underline;
+    }
+    @media (max-width: 450px) {
+      .game-container {
+        padding: 1.5rem 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <h1>N-Back 训练 <span class="n-level" id="nLevelDisplay">2-Back</span></h1>
+
+  <div class="info-panel">
+    <div class="stat-box">正确 <span id="correctCount">0</span></div>
+    <div class="stat-box">错误 <span id="missCount">0</span></div>
+    <div class="stat-box">轮次 <span id="trialCount">0</span>/20</div>
+  </div>
+
+  <div class="grid-area">
+    <div class="position-grid" id="positionGrid"></div>
+    <div class="letter-display" id="letterDisplay">A</div>
+    <div class="rule-hint">
+      位置匹配：当前方块位置 = 上上次方块位置<br>
+      字母匹配：当前字母 = 上上次字母
+    </div>
+  </div>
+
+  <div class="feedback-text" id="feedbackText">&nbsp;</div>
+
+  <div class="response-buttons">
+    <button class="btn secondary" id="posMatchBtn">位置匹配</button>
+    <button class="btn secondary" id="letterMatchBtn">字母匹配</button>
+  </div>
+  <div class="response-buttons">
+    <button class="btn primary" id="startBtn">开始新训练</button>
+  </div>
+
+  <div class="history-section">
+    <div class="history-title">
+      <span>训练记录</span>
+      <button class="clear-btn" id="clearHistoryBtn">清空</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div style="color:#888;text-align:center;padding:0.6rem;">暂无记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const POSITIONS = 9;
+    const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
+    const TOTAL_TRIALS = 20;
+    let N = 2;
+
+    let historyPositions = [];
+    let historyLetters = [];
+    let currentTrial = 0;
+    let correctResponses = 0;
+    let missResponses = 0;
+    let gameActive = false;
+    let trialTimeout = null;
+    let currentPosIndex = -1;
+    let currentLetter = '';
+    let respondedThisTrial = false;
+
+    const positionGrid = document.getElementById('positionGrid');
+    const letterDisplay = document.getElementById('letterDisplay');
+    const correctSpan = document.getElementById('correctCount');
+    const missSpan = document.getElementById('missCount');
+    const trialSpan = document.getElementById('trialCount');
+    const feedbackDiv = document.getElementById('feedbackText');
+    const posMatchBtn = document.getElementById('posMatchBtn');
+    const letterMatchBtn = document.getElementById('letterMatchBtn');
+    const startBtn = document.getElementById('startBtn');
+    const nLevelDisplay = document.getElementById('nLevelDisplay');
+    const historyListDiv = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+    function createPositionGrid() {
+      positionGrid.innerHTML = '';
+      for (let i = 0; i < POSITIONS; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'pos-cell';
+        cell.setAttribute('data-pos', i);
+        positionGrid.appendChild(cell);
+      }
+    }
+
+    function highlightPosition(posIndex) {
+      const cells = document.querySelectorAll('.pos-cell');
+      cells.forEach(c => c.classList.remove('active'));
+      if (posIndex !== null && posIndex >= 0 && posIndex < POSITIONS) {
+        cells[posIndex].classList.add('active');
+      }
+    }
+
+    function generateStimulus() {
+      const pos = Math.floor(Math.random() * POSITIONS);
+      const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+      return { pos, letter };
+    }
+
+    function checkPositionMatch() {
+      if (historyPositions.length < N + 1) return false;
+      return historyPositions[historyPositions.length - 1] === historyPositions[historyPositions.length - 1 - N];
+    }
+
+    function checkLetterMatch() {
+      if (historyLetters.length < N + 1) return false;
+      return historyLetters[historyLetters.length - 1] === historyLetters[historyLetters.length - 1 - N];
+    }
+
+    function handleResponse(type) {
+      if (!gameActive || respondedThisTrial || currentTrial <= N) return;
+      respondedThisTrial = true;
+      const posMatch = checkPositionMatch();
+      const letterMatch = checkLetterMatch();
+      let isCorrect = false;
+      if (type === 'pos') isCorrect = posMatch;
+      else if (type === 'letter') isCorrect = letterMatch;
+      if (isCorrect) {
+        correctResponses++;
+        feedbackDiv.textContent = '正确';
+        feedbackDiv.style.color = '#2a7a2a';
+      } else {
+        missResponses++;
+        feedbackDiv.textContent = '错误';
+        feedbackDiv.style.color = '#b33a3a';
+      }
+      updateStats();
+    }
+
+    function presentStimulus() {
+      if (!gameActive) return;
+      if (trialTimeout) clearTimeout(trialTimeout);
+      const { pos, letter } = generateStimulus();
+      currentPosIndex = pos;
+      currentLetter = letter;
+      historyPositions.push(pos);
+      historyLetters.push(letter);
+      if (historyPositions.length > N + 10) {
+        historyPositions.shift();
+        historyLetters.shift();
+      }
+      highlightPosition(pos);
+      letterDisplay.textContent = letter;
+      respondedThisTrial = false;
+      feedbackDiv.textContent = ' ';
+      currentTrial++;
+      updateStats();
+      if (currentTrial >= TOTAL_TRIALS) {
+        trialTimeout = setTimeout(() => { endTraining(); }, 2000);
+        return;
+      }
+      trialTimeout = setTimeout(() => { presentStimulus(); }, 2500);
+    }
+
+    function updateStats() {
+      correctSpan.textContent = correctResponses;
+      missSpan.textContent = missResponses;
+      trialSpan.textContent = `${currentTrial}/${TOTAL_TRIALS}`;
+    }
+
+    function endTraining() {
+      if (!gameActive) return;
+      gameActive = false;
+      if (trialTimeout) clearTimeout(trialTimeout);
+      const accuracy = currentTrial > N ? (correctResponses / (currentTrial - N) * 100).toFixed(1) : '0.0';
+      feedbackDiv.textContent = `训练结束，准确率 ${accuracy}%`;
+      feedbackDiv.style.color = '#1a1a1a';
+      const record = {
+        n: N, trials: TOTAL_TRIALS, correct: correctResponses,
+        misses: missResponses, accuracy: parseFloat(accuracy), date: Date.now()
+      };
+      saveRecord(record);
+      highlightPosition(null);
+      letterDisplay.textContent = '-';
+    }
+
+    function startTraining() {
+      if (trialTimeout) clearTimeout(trialTimeout);
+      historyPositions = [];
+      historyLetters = [];
+      currentTrial = 0;
+      correctResponses = 0;
+      missResponses = 0;
+      gameActive = true;
+      respondedThisTrial = true;
+      updateStats();
+      feedbackDiv.textContent = '准备...';
+      feedbackDiv.style.color = '#1a1a1a';
+      highlightPosition(null);
+      letterDisplay.textContent = '-';
+      setTimeout(() => { if (gameActive) presentStimulus(); }, 800);
+    }
+
+    const STORAGE_KEY = 'nback_training_records';
+    function getRecords() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+    }
+    function saveRecord(rec) {
+      const records = getRecords();
+      records.unshift(rec);
+      if (records.length > 20) records.pop();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderHistory();
+    }
+    function clearRecords() {
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+    }
+    function renderHistory() {
+      const records = getRecords();
+      historyListDiv.innerHTML = '';
+      if (!records.length) {
+        historyListDiv.innerHTML = '<div style="color:#888;text-align:center;padding:0.6rem;">暂无记录</div>';
+        return;
+      }
+      records.forEach((r, i) => {
+        const dateStr = r.date ? new Date(r.date).toLocaleString('zh-CN',{hour12:false}) : '';
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `<span>${r.n}-Back 准确率 ${r.accuracy}%</span><span style="color:#666;font-size:0.7rem;">${dateStr}</span>`;
+        historyListDiv.appendChild(div);
+      });
+    }
+
+    posMatchBtn.addEventListener('click', () => handleResponse('pos'));
+    letterMatchBtn.addEventListener('click', () => handleResponse('letter'));
+    startBtn.addEventListener('click', startTraining);
+    clearHistoryBtn.addEventListener('click', () => { if(confirm('清空记录？')) clearRecords(); });
+
+    createPositionGrid();
+    renderHistory();
+    nLevelDisplay.textContent = `${N}-Back`;
+  })();
+</script>
+</body>
+</html>

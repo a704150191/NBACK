@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover">
+  <title>舒尔特方格 · 专注力训练</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif;
+      padding: 0.8rem;
+      margin: 0;
+    }
+
+    .game-container {
+      max-width: 650px;
+      width: 100%;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-radius: 2rem;
+      padding: 1.8rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      border: 1px solid #e0e0e0;
+    }
+
+    h1 {
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: 1px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: -0.2rem;
+    }
+    h1 span {
+      background: #f0f0f0;
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #333;
+      margin-left: 0.2rem;
+      border: 1px solid #ccc;
+    }
+
+    /* 完成提示条 */
+    .completion-message {
+      width: 100%;
+      background: #f0f7f0;
+      border: 1px solid #a3c9a3;
+      color: #1a3b1a;
+      padding: 0.7rem 1.2rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      text-align: center;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .info-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #f9f9f9;
+      border-radius: 2rem;
+      padding: 0.7rem 1.2rem;
+      border: 1px solid #e0e0e0;
+      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      color: #1a1a1a;
+    }
+
+    .target-number {
+      background: #ffffff;
+      border: 1px solid #333;
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #000;
+    }
+    .target-number span {
+      background: #eaeaea;
+      padding: 0.2rem 0.7rem;
+      border-radius: 2rem;
+      margin-left: 0.2rem;
+      font-weight: 700;
+    }
+
+    .timer-box {
+      font-size: 1.3rem;
+      background: #ffffff;
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #1a1a1a;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mistakes-box {
+      background: #ffffff;
+      color: #b33a3a;
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      border: 1px solid #d4a0a0;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: transparent;
+      margin: 0.2rem 0 0.1rem;
+      position: relative;
+    }
+
+    .cell {
+      background: #ffffff;
+      border: 2px solid #1a1a1a;
+      border-radius: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.2rem, 5vw, 2rem);
+      font-weight: 700;
+      color: #1a1a1a;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: all 0.08s ease;
+      cursor: pointer;
+      user-select: none;
+      aspect-ratio: 1 / 1;
+      background: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cell:active {
+      transform: scale(0.96);
+      background: #f5f5f5;
+    }
+
+    .cell.hidden {
+      background: #f5f5f5;
+      border: 2px dashed #cccccc;
+      color: transparent;
+      box-shadow: none;
+      pointer-events: none;
+      transform: none;
+    }
+
+    .cell.wrong-flash {
+      animation: shake 0.25s ease-in-out;
+      background: #fff0f0;
+      border-color: #cc5555;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(3px); }
+    }
+
+    .countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.8rem;
+      z-index: 10;
+      pointer-events: all;
+    }
+
+    .countdown-number {
+      font-size: 5rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      animation: pop 0.3s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0.6; }
+      80% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.8rem;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      background: white;
+      border: 2px solid #1a1a1a;
+      padding: 0.7rem 1.5rem;
+      border-radius: 2.5rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.6px;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: 0.1s linear;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      flex: 1 1 auto;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active {
+      background: #f0f0f0;
+      transform: scale(0.97);
+    }
+
+    .btn.primary {
+      background: #1a1a1a;
+      color: white;
+      border: 2px solid #1a1a1a;
+    }
+
+    .btn.primary:active {
+      background: #333;
+    }
+
+    .history-section {
+      width: 100%;
+      background: #fafafa;
+      border-radius: 1.5rem;
+      padding: 0.9rem 1rem;
+      margin-top: 0.1rem;
+      border: 1px solid #e0e0e0;
+    }
+
+    .history-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .history-list {
+      max-height: 130px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      background: #ffffff;
+      padding: 0.35rem 0.8rem;
+      border-radius: 2rem;
+      font-weight: 500;
+      color: #1a1a1a;
+      border: 1px solid #e0e0e0;
+    }
+
+    .badge {
+      background: #e0e0e0;
+      color: #1a1a1a;
+      border-radius: 2rem;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .clear-history {
+      background: transparent;
+      border: none;
+      color: #555;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.75rem;
+      text-decoration: underline;
+      padding: 0.2rem 0.4rem;
+    }
+
+    @media (max-width: 450px) {
+      .game-container {
+        padding: 1.5rem 0.9rem;
+      }
+      .grid {
+        gap: 0.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <h1>
+    舒尔特方格
+    <span>5x5</span>
+  </h1>
+
+  <!-- 友好的完成提示信息 (替代alert) -->
+  <div class="completion-message" id="completionMessage">
+    <span>✅</span> <span id="completionText"></span>
+  </div>
+
+  <div class="info-panel">
+    <div class="target-number">
+      👆 下一个 <span id="targetDisplay">1</span>
+    </div>
+    <div class="timer-box">
+      ⏱️ <span id="timer">0.00</span>s
+    </div>
+    <div class="mistakes-box">
+      ❌ <span id="mistakeCount">0</span>
+    </div>
+  </div>
+
+  <div class="grid" id="gridContainer"></div>
+
+  <div class="actions">
+    <button class="btn primary" id="resetButton">🔄 新的一局</button>
+  </div>
+
+  <div class="history-section">
+    <div class="history-title">
+      <span>📋 通关战绩</span>
+      <button class="clear-history" id="clearHistoryBtn">清空记录</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div style="color:#888; text-align:center; padding:0.6rem;">暂无记录，完成一局吧</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const SIZE = 5;
+    const TOTAL_CELLS = SIZE * SIZE;
+
+    let gridNumbers = [];
+    let currentTarget = 1;
+    let mistakes = 0;
+    let timerInterval = null;
+    let startTime = null;
+    let elapsedSeconds = 0;
+    let gameActive = false;
+    let gameCompleted = false;
+    let countdownActive = false;
+
+    const gridContainer = document.getElementById('gridContainer');
+    const targetDisplay = document.getElementById('targetDisplay');
+    const timerDisplay = document.getElementById('timer');
+    const mistakeDisplay = document.getElementById('mistakeCount');
+    const resetButton = document.getElementById('resetButton');
+    const historyListDiv = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const completionMessageDiv = document.getElementById('completionMessage');
+    const completionTextSpan = document.getElementById('completionText');
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function generateRandomGrid() {
+      const numbers = Array.from({ length: TOTAL_CELLS }, (_, i) => i + 1);
+      return shuffleArray(numbers);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      startTime = Date.now() - elapsedSeconds * 1000;
+      timerInterval = setInterval(() => {
+        const now = Date.now();
+        elapsedSeconds = (now - startTime) / 1000;
+        if (elapsedSeconds < 0) elapsedSeconds = 0;
+        timerDisplay.textContent = elapsedSeconds.toFixed(2);
+      }, 40);
+    }
+
+    function resetTimerValues() {
+      stopTimer();
+      elapsedSeconds = 0;
+      timerDisplay.textContent = '0.00';
+    }
+
+    function updateTargetDisplay() {
+      targetDisplay.textContent = currentTarget;
+    }
+
+    function updateMistakeDisplay() {
+      mistakeDisplay.textContent = mistakes;
+    }
+
+    function hideCompletionMessage() {
+      completionMessageDiv.style.display = 'none';
+    }
+
+    function showCompletionMessage(time, mistakesCount) {
+      completionTextSpan.textContent = `完成！用时 ${time.toFixed(2)} 秒，错误 ${mistakesCount} 次`;
+      completionMessageDiv.style.display = 'flex';
+      // 8秒后自动淡隐，但不强制消失
+      setTimeout(() => {
+        if (completionMessageDiv.style.display === 'flex') {
+          completionMessageDiv.style.display = 'none';
+        }
+      }, 8000);
+    }
+
+    // 倒计时逻辑
+    function showCountdown(callbackWhenDone) {
+      const existingOverlay = document.querySelector('.countdown-overlay');
+      if (existingOverlay) existingOverlay.remove();
+
+      countdownActive = true;
+      gameActive = false;
+      hideCompletionMessage();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'countdown-overlay';
+      const numberSpan = document.createElement('span');
+      numberSpan.className = 'countdown-number';
+      overlay.appendChild(numberSpan);
+      gridContainer.appendChild(overlay);
+
+      let count = 3;
+      function updateCountdown() {
+        if (count > 0) {
+          numberSpan.textContent = count;
+          numberSpan.style.animation = 'none';
+          void numberSpan.offsetWidth;
+          numberSpan.style.animation = 'pop 0.3s ease-out';
+          count--;
+          setTimeout(updateCountdown, 700);
+        } else {
+          numberSpan.textContent = '开始';
+          numberSpan.style.animation = 'none';
+          void numberSpan.offsetWidth;
+          numberSpan.style.animation = 'pop 0.3s ease-out';
+          setTimeout(() => {
+            if (overlay && overlay.parentNode === gridContainer) {
+              overlay.remove();
+            }
+            countdownActive = false;
+            gameActive = true;
+            startTimer();
+            if (callbackWhenDone) callbackWhenDone();
+          }, 400);
+        }
+      }
+      updateCountdown();
+    }
+
+    function checkGameComplete() {
+      if (currentTarget > TOTAL_CELLS) {
+        finishGameSuccess();
+        return true;
+      }
+      return false;
+    }
+
+    function finishGameSuccess() {
+      if (!gameActive || gameCompleted) return;
+      gameCompleted = true;
+      gameActive = false;
+      stopTimer();
+
+      const finalTime = elapsedSeconds;
+      const finalMistakes = mistakes;
+
+      const record = {
+        time: finalTime,
+        mistakes: finalMistakes,
+        date: Date.now()
+      };
+      saveRecord(record);
+
+      // 用页面内提示替代alert
+      showCompletionMessage(finalTime, finalMistakes);
+    }
+
+    function handleCellClick(index, numberValue) {
+      if (!gameActive || gameCompleted || countdownActive) return;
+
+      if (numberValue === currentTarget) {
+        const cellElement = document.querySelector(`.cell[data-index='${index}']`);
+        if (cellElement) {
+          cellElement.classList.add('hidden');
+        }
+        currentTarget++;
+        updateTargetDisplay();
+        checkGameComplete();
+      } else {
+        mistakes++;
+        updateMistakeDisplay();
+
+        const cellElement = document.querySelector(`.cell[data-index='${index}']`);
+        if (cellElement && !cellElement.classList.contains('hidden')) {
+          cellElement.classList.add('wrong-flash');
+          cellElement.addEventListener('animationend', function onAnimEnd(e) {
+            if (e.target === cellElement) {
+              cellElement.classList.remove('wrong-flash');
+              cellElement.removeEventListener('animationend', onAnimEnd);
+            }
+          }, { once: true });
+        }
+      }
+    }
+
+    function renderGrid() {
+      gridContainer.innerHTML = '';
+      gridNumbers.forEach((num, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = num;
+        cell.setAttribute('data-index', idx);
+        cell.setAttribute('data-number', num);
+        cell.addEventListener('click', (e) => {
+          const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          const numberVal = parseInt(e.currentTarget.getAttribute('data-number'), 10);
+          handleCellClick(index, numberVal);
+        });
+        gridContainer.appendChild(cell);
+      });
+    }
+
+    function resetGame() {
+      stopTimer();
+      const oldOverlay = document.querySelector('.countdown-overlay');
+      if (oldOverlay) oldOverlay.remove();
+      
+      gridNumbers = generateRandomGrid();
+      currentTarget = 1;
+      mistakes = 0;
+      gameCompleted = false;
+      gameActive = false;
+      countdownActive = false;
+      
+      resetTimerValues();
+      updateTargetDisplay();
+      updateMistakeDisplay();
+      hideCompletionMessage();
+      
+      renderGrid();
+      
+      showCountdown(() => {});
+    }
+
+    function initialGame() {
+      gridNumbers = generateRandomGrid();
+      currentTarget = 1;
+      mistakes = 0;
+      gameCompleted = false;
+      gameActive = false;
+      countdownActive = false;
+      resetTimerValues();
+      updateTargetDisplay();
+      updateMistakeDisplay();
+      hideCompletionMessage();
+      renderGrid();
+      showCountdown(() => {});
+    }
+
+    // 战绩存储
+    const STORAGE_KEY = 'schulte_grid_5x5_records';
+
+    function getStoredRecords() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRecord(record) {
+      const records = getStoredRecords();
+      records.unshift(record);
+      if (records.length > 20) records.pop();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderHistory();
+    }
+
+    function clearAllRecords() {
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+    }
+
+    function formatTime(seconds) {
+      return seconds.toFixed(2) + 's';
+    }
+
+    function renderHistory() {
+      const records = getStoredRecords();
+      historyListDiv.innerHTML = '';
+      if (!records || records.length === 0) {
+        historyListDiv.innerHTML = '<div style="color:#888; text-align:center; padding:0.6rem;">暂无记录，完成一局吧</div>';
+        return;
+      }
+
+      records.forEach((rec, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'history-item';
+        const dateStr = rec.date ? new Date(rec.date).toLocaleString('zh-CN', { hour12: false }) : '未知时间';
+        itemDiv.innerHTML = `
+          <span><span class="badge">#${index + 1}</span> ${formatTime(rec.time)}</span>
+          <span style="display:flex; gap:0.8rem; align-items:center;">
+            <span>❌${rec.mistakes}</span>
+            <span style="font-size:0.7rem; color:#666;">${dateStr}</span>
+          </span>
+        `;
+        historyListDiv.appendChild(itemDiv);
+      });
+    }
+
+    resetButton.addEventListener('click', () => {
+      if (gameActive && !gameCompleted && currentTarget > 1) {
+        if (!confirm('当前游戏还未完成，确定要重新开始吗？')) {
+          return;
+        }
+      }
+      resetGame();
+    });
+
+    clearHistoryBtn.addEventListener('click', () => {
+      if (confirm('确定要清空所有通关战绩吗？')) {
+        clearAllRecords();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initialGame();
+      renderHistory();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopTimer();
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+    <title>每日记录表</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #ffffff;
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif;
+            padding: 0.6rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-container {
+            max-width: 100%;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 1.8rem;
+            padding: 1.2rem 1rem 1.5rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        h1 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .input-area {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 2rem;
+            padding: 0.4rem;
+        }
+        .input-area input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.7rem 1rem;
+            font-size: 0.95rem;
+            outline: none;
+            color: #1a1a1a;
+        }
+        .input-area button {
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .category-selector {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .category-selector.active {
+            display: flex;
+        }
+        .category-panel {
+            background: white;
+            border-radius: 2rem;
+            padding: 1.5rem 1rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .category-panel h3 {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #1a1a1a;
+            margin-bottom: 0.2rem;
+        }
+        .grid-choices {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+        }
+        .grid-choices button {
+            background: white;
+            border: 2px solid #1a1a1a;
+            border-radius: 1.2rem;
+            padding: 0.8rem 0.3rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1a1a1a;
+            cursor: pointer;
+            transition: 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-break: break-word;
+        }
+        .grid-choices button:active {
+            background: #1a1a1a;
+            color: white;
+        }
+        .cancel-btn {
+            background: #f0f0f0;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.7rem;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 0.3rem;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            border: 1px solid #e0e0e0;
+            border-radius: 1.2rem;
+            background: #fafafa;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+            font-size: 0.8rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.5rem 0.3rem;
+            text-align: left;
+            vertical-align: top;
+            background: white;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: 700;
+            color: #1a1a1a;
+            position: sticky;
+            top: 0;
+        }
+        .date-col {
+            font-weight: 600;
+            white-space: nowrap;
+            color: #333;
+            background: #fafafa;
+        }
+        .content-cell {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: #333;
+            min-height: 1.8rem;
+        }
+        .content-cell ol {
+            margin: 0;
+            padding-left: 1.2rem;
+        }
+        .content-cell li {
+            margin-bottom: 2px;
+            word-break: break-word;
+        }
+        .empty-cell {
+            color: #ccc;
+            font-style: italic;
+        }
+        .footer-note {
+            text-align: center;
+            color: #999;
+            font-size: 0.7rem;
+        }
+        @media (max-width: 500px) {
+            .app-container { padding: 1rem 0.8rem; }
+            th, td { padding: 0.4rem 0.2rem; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>每日记录 · 六项追踪</h1>
+
+    <!-- 输入区 -->
+    <div class="input-area">
+        <input type="text" id="contentInput" placeholder="输入内容，点击右侧添加...">
+        <button id="addBtn">确认</button>
+    </div>
+
+    <!-- 类别选择浮层 -->
+    <div class="category-selector" id="categorySelector">
+        <div class="category-panel">
+            <h3>选择分类</h3>
+            <div class="grid-choices" id="categoryGrid">
+                <button data-category="戒烟">1. 戒烟</button>
+                <button data-category="COPD">2. COPD</button>
+                <button data-category="降糖">3. 降糖</button>
+                <button data-category="肺动脉高压">4. 肺动脉高压</button>
+                <button data-category="公司">5. 公司</button>
+                <button data-category="中心">6. 中心</button>
+            </div>
+            <button class="cancel-btn" id="cancelCategoryBtn">取消</button>
+        </div>
+    </div>
+
+    <!-- 表格区域 -->
+    <div class="table-wrapper">
+        <table id="recordTable">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>戒烟</th>
+                    <th>COPD</th>
+                    <th>降糖</th>
+                    <th>肺动脉高压</th>
+                    <th>公司</th>
+                    <th>中心</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <div class="footer-note">每天自动生成一行 · 点击类别编号选择分类</div>
+</div>
+
+<script>
+    (function() {
+        // 存储结构: { "2026-04-27": { "戒烟": ["内容1","内容2"], "COPD": [], ... } }
+        const STORAGE_KEY = 'daily_tracker_data';
+        const CATEGORIES = ['戒烟', 'COPD', '降糖', '肺动脉高压', '公司', '中心'];
+
+        let data = {};
+
+        // DOM 元素
+        const contentInput = document.getElementById('contentInput');
+        const addBtn = document.getElementById('addBtn');
+        const categorySelector = document.getElementById('categorySelector');
+        const categoryGrid = document.getElementById('categoryGrid');
+        const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+        const tableBody = document.getElementById('tableBody');
+
+        // 当前待添加的内容
+        let pendingContent = '';
+
+        // 加载数据
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    data = JSON.parse(stored);
+                } catch (e) {
+                    data = {};
+                }
+            } else {
+                data = {};
+            }
+            // 确保今天日期有行
+            const today = getTodayString();
+            if (!data[today]) {
+                data[today] = {};
+                CATEGORIES.forEach(cat => { data[today][cat] = []; });
+                saveData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function getTodayString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 渲染表格
+        function renderTable() {
+            // 获取所有日期并排序 (最新在上)
+            const dates = Object.keys(data).sort((a,b) => b.localeCompare(a));
+            tableBody.innerHTML = '';
+            if (dates.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#999;">暂无记录</td></tr>';
+                return;
+            }
+            dates.forEach(date => {
+                const row = document.createElement('tr');
+                // 日期列
+                const dateCell = document.createElement('td');
+                dateCell.className = 'date-col';
+                dateCell.textContent = date;
+                row.appendChild(dateCell);
+
+                // 每个类别列
+                CATEGORIES.forEach(cat => {
+                    const td = document.createElement('td');
+                    td.className = 'content-cell';
+                    const items = data[date]?.[cat] || [];
+                    if (items.length === 0) {
+                        td.innerHTML = '<span class="empty-cell">-</span>';
+                    } else {
+                        const ol = document.createElement('ol');
+                        items.forEach(item => {
+                            const li = document.createElement('li');
+                            li.textContent = item;
+                            ol.appendChild(li);
+                        });
+                        td.appendChild(ol);
+                    }
+                    row.appendChild(td);
+                });
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 显示类别选择器
+        function showCategorySelector() {
+            categorySelector.classList.add('active');
+        }
+
+        function hideCategorySelector() {
+            categorySelector.classList.remove('active');
+            pendingContent = '';
+        }
+
+        // 处理添加内容
+        function addContentToCategory(category) {
+            if (!pendingContent.trim()) return;
+            const today = getTodayString();
+            if (!data[today]) {
+                data[today] = {};
+                CATEGORIES.forEach(cat => { data[today][cat] = []; });
+            }
+            if (!data[today][category]) {
+                data[today][category] = [];
+            }
+            data[today][category].push(pendingContent.trim());
+            saveData();
+            renderTable();
+            contentInput.value = '';
+            pendingContent = '';
+            hideCategorySelector();
+        }
+
+        // 事件绑定
+        addBtn.addEventListener('click', () => {
+            const val = contentInput.value.trim();
+            if (!val) {
+                alert('请输入内容');
+                return;
+            }
+            pendingContent = val;
+            showCategorySelector();
+        });
+
+        // 类别按钮点击
+        categoryGrid.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.currentTarget.getAttribute('data-category');
+                addContentToCategory(category);
+            });
+        });
+
+        cancelCategoryBtn.addEventListener('click', hideCategorySelector);
+        // 点击遮罩关闭
+        categorySelector.addEventListener('click', (e) => {
+            if (e.target === categorySelector) hideCategorySelector();
+        });
+
+        // 键盘回车提交
+        contentInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addBtn.click();
+            }
+        });
+
+        // 初始化
+        loadData();
+        renderTable();
+        // 每天检查一次是否需要添加新行（但每次加载已检查）
+    })();
+</script>
+</body>
+</html>

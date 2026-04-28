@@ -189,10 +189,74 @@
             color: #ccc;
             font-style: italic;
         }
+        .sync-row {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+            justify-content: center;
+        }
+        .sync-row input {
+            width: 80px;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.7rem;
+            border-radius: 0.5rem;
+            border: 1px solid #ccc;
+        }
+        .sync-row button {
+            padding: 0.3rem 0.7rem;
+            font-size: 0.65rem;
+            border-radius: 1rem;
+            border: 1px solid #aaa;
+            background: white;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .sync-row button:active {
+            background: #1a1a1a;
+            color: white;
+        }
         .footer-note {
             text-align: center;
             color: #999;
             font-size: 0.7rem;
+        }
+        .setup-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .setup-panel {
+            background: white;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .setup-panel input {
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 1rem;
+            border: 1px solid #ccc;
+        }
+        .setup-panel button {
+            padding: 0.7rem;
+            border-radius: 2rem;
+            background: #1a1a1a;
+            color: white;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
         }
         @media (max-width: 500px) {
             .app-container { padding: 1rem 0.8rem; }
@@ -204,13 +268,11 @@
 <div class="app-container">
     <h1>每日记录 · 六项追踪</h1>
 
-    <!-- 输入区 -->
     <div class="input-area">
         <input type="text" id="contentInput" placeholder="输入内容，点击右侧添加...">
         <button id="addBtn">确认</button>
     </div>
 
-    <!-- 类别选择浮层 -->
     <div class="category-selector" id="categorySelector">
         <div class="category-panel">
             <h3>选择分类</h3>
@@ -226,7 +288,6 @@
         </div>
     </div>
 
-    <!-- 表格区域 -->
     <div class="table-wrapper">
         <table id="recordTable">
             <thead>
@@ -243,41 +304,109 @@
             <tbody id="tableBody"></tbody>
         </table>
     </div>
+
+    <div class="sync-row">
+        <input type="password" id="syncPassword" placeholder="同步密码">
+        <button id="uploadBtn">上传</button>
+        <button id="downloadBtn">下载</button>
+        <span id="syncStatus" style="font-size:0.65rem;color:#999;"></span>
+    </div>
     <div class="footer-note">每天自动生成一行 · 点击类别编号选择分类</div>
+</div>
+
+<div class="setup-overlay" id="setupOverlay">
+    <div class="setup-panel">
+        <h3 style="text-align:center;">配置 GitHub 同步</h3>
+        <input type="text" id="githubUserInput" placeholder="GitHub 用户名">
+        <input type="text" id="repoInput" placeholder="仓库名（如 NBACK）">
+        <input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)">
+        <button id="saveSetupBtn">保存配置</button>
+        <div style="font-size:0.65rem;color:#999;text-align:center;">
+            Token 获取：github.com/settings/tokens （勾选 repo）
+        </div>
+    </div>
 </div>
 
 <script>
     (function() {
-        // 存储结构: { "2026-04-27": { "戒烟": ["内容1","内容2"], "COPD": [], ... } }
         const STORAGE_KEY = 'daily_tracker_data';
+        const SETUP_KEY = 'tracker_sync_config';
+        const SYNC_FILE = 'daily_tracker.json';
         const CATEGORIES = ['戒烟', 'COPD', '降糖', '肺动脉高压', '公司', '中心'];
 
         let data = {};
+        let syncConfig = null;
+        let pendingContent = '';
 
-        // DOM 元素
         const contentInput = document.getElementById('contentInput');
         const addBtn = document.getElementById('addBtn');
         const categorySelector = document.getElementById('categorySelector');
         const categoryGrid = document.getElementById('categoryGrid');
         const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
         const tableBody = document.getElementById('tableBody');
+        const syncPassword = document.getElementById('syncPassword');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const syncStatus = document.getElementById('syncStatus');
+        const setupOverlay = document.getElementById('setupOverlay');
+        const githubUserInput = document.getElementById('githubUserInput');
+        const repoInput = document.getElementById('repoInput');
+        const tokenInput = document.getElementById('tokenInput');
+        const saveSetupBtn = document.getElementById('saveSetupBtn');
 
-        // 当前待添加的内容
-        let pendingContent = '';
+        function getTodayString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
 
-        // 加载数据
+        function encrypt(text, password) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+            }
+            return btoa(result);
+        }
+        function decrypt(encBase64, password) {
+            try {
+                const str = atob(encBase64);
+                let result = '';
+                for (let i = 0; i < str.length; i++) {
+                    result += String.fromCharCode(str.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+                }
+                return result;
+            } catch(e) { return null; }
+        }
+
+        function loadSyncConfig() {
+            const stored = localStorage.getItem(SETUP_KEY);
+            if (stored) {
+                try { syncConfig = JSON.parse(stored); } catch { syncConfig = null; }
+            }
+            if (syncConfig && syncConfig.username && syncConfig.token && syncConfig.repo) {
+                setupOverlay.style.display = 'none';
+            } else {
+                setupOverlay.style.display = 'flex';
+                syncConfig = null;
+            }
+        }
+
+        function saveSyncConfig() {
+            const u = githubUserInput.value.trim();
+            const r = repoInput.value.trim();
+            const t = tokenInput.value.trim();
+            if (!u || !r || !t) { alert('请填完整'); return; }
+            syncConfig = { username: u, repo: r, token: t };
+            localStorage.setItem(SETUP_KEY, JSON.stringify(syncConfig));
+            setupOverlay.style.display = 'none';
+        }
+
         function loadData() {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
-                try {
-                    data = JSON.parse(stored);
-                } catch (e) {
-                    data = {};
-                }
+                try { data = JSON.parse(stored); } catch(e) { data = {}; }
             } else {
                 data = {};
             }
-            // 确保今天日期有行
             const today = getTodayString();
             if (!data[today]) {
                 data[today] = {};
@@ -290,17 +419,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         }
 
-        function getTodayString() {
-            const d = new Date();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2,'0');
-            const day = String(d.getDate()).padStart(2,'0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // 渲染表格
         function renderTable() {
-            // 获取所有日期并排序 (最新在上)
             const dates = Object.keys(data).sort((a,b) => b.localeCompare(a));
             tableBody.innerHTML = '';
             if (dates.length === 0) {
@@ -309,13 +428,10 @@
             }
             dates.forEach(date => {
                 const row = document.createElement('tr');
-                // 日期列
                 const dateCell = document.createElement('td');
                 dateCell.className = 'date-col';
                 dateCell.textContent = date;
                 row.appendChild(dateCell);
-
-                // 每个类别列
                 CATEGORIES.forEach(cat => {
                     const td = document.createElement('td');
                     td.className = 'content-cell';
@@ -337,17 +453,14 @@
             });
         }
 
-        // 显示类别选择器
         function showCategorySelector() {
             categorySelector.classList.add('active');
         }
-
         function hideCategorySelector() {
             categorySelector.classList.remove('active');
             pendingContent = '';
         }
 
-        // 处理添加内容
         function addContentToCategory(category) {
             if (!pendingContent.trim()) return;
             const today = getTodayString();
@@ -355,9 +468,7 @@
                 data[today] = {};
                 CATEGORIES.forEach(cat => { data[today][cat] = []; });
             }
-            if (!data[today][category]) {
-                data[today][category] = [];
-            }
+            if (!data[today][category]) data[today][category] = [];
             data[today][category].push(pendingContent.trim());
             saveData();
             renderTable();
@@ -366,42 +477,89 @@
             hideCategorySelector();
         }
 
-        // 事件绑定
+        async function uploadToGitHub() {
+            if (!syncConfig) { syncStatus.textContent = '请先配置GitHub'; return; }
+            const pw = syncPassword.value;
+            if (!pw) { syncStatus.textContent = '请输入同步密码'; return; }
+            const plain = JSON.stringify(data);
+            const encrypted = encrypt(plain, pw);
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify({ data: encrypted }))));
+            const apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+
+            let sha = null;
+            try {
+                const resp = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` } });
+                if (resp.ok) { const d = await resp.json(); sha = d.sha; }
+            } catch(e) {}
+
+            const body = { message: 'update daily tracker', content };
+            if (sha) body.sha = sha;
+
+            const resp = await fetch(apiUrl, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${syncConfig.token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (resp.ok) {
+                syncStatus.textContent = '已上传 ' + new Date().toLocaleTimeString('zh-CN');
+            } else {
+                const err = await resp.json();
+                syncStatus.textContent = '上传失败: ' + (err.message || '未知');
+            }
+        }
+
+        async function downloadFromGitHub() {
+            if (!syncConfig) { syncStatus.textContent = '请先配置GitHub'; return; }
+            const pw = syncPassword.value;
+            if (!pw) { syncStatus.textContent = '请输入同步密码'; return; }
+            const apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+            const resp = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` } });
+            if (!resp.ok) { syncStatus.textContent = '云端暂无备份'; return; }
+            const d = await resp.json();
+            try {
+                const wrapper = JSON.parse(decodeURIComponent(escape(atob(d.content))));
+                const plain = decrypt(wrapper.data, pw);
+                if (!plain) { syncStatus.textContent = '密码错误'; return; }
+                const parsed = JSON.parse(plain);
+                if (parsed) data = parsed;
+                saveData();
+                renderTable();
+                syncStatus.textContent = '已下载 ' + new Date().toLocaleTimeString('zh-CN');
+            } catch(e) {
+                syncStatus.textContent = '数据格式错误或密码不对';
+            }
+        }
+
         addBtn.addEventListener('click', () => {
             const val = contentInput.value.trim();
-            if (!val) {
-                alert('请输入内容');
-                return;
-            }
+            if (!val) { alert('请输入内容'); return; }
             pendingContent = val;
             showCategorySelector();
         });
 
-        // 类别按钮点击
         categoryGrid.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const category = e.currentTarget.getAttribute('data-category');
-                addContentToCategory(category);
+                addContentToCategory(e.currentTarget.getAttribute('data-category'));
             });
         });
 
         cancelCategoryBtn.addEventListener('click', hideCategorySelector);
-        // 点击遮罩关闭
         categorySelector.addEventListener('click', (e) => {
             if (e.target === categorySelector) hideCategorySelector();
         });
 
-        // 键盘回车提交
         contentInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                addBtn.click();
-            }
+            if (e.key === 'Enter') addBtn.click();
         });
 
-        // 初始化
+        uploadBtn.addEventListener('click', uploadToGitHub);
+        downloadBtn.addEventListener('click', downloadFromGitHub);
+        saveSetupBtn.addEventListener('click', saveSyncConfig);
+
+        loadSyncConfig();
         loadData();
         renderTable();
-        // 每天检查一次是否需要添加新行（但每次加载已检查）
     })();
 </script>
 </body>

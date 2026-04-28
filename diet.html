@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover, apple-mobile-web-app-capable=yes, apple-mobile-web-app-status-bar-style=default">
+  <title>减肥监测</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffffff;
+      font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif;
+      padding: 0.8rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 2rem;
+      padding: 1.5rem 1.2rem 1.8rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: row;
+      gap: 1.5rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    h1 { font-weight: 600; font-size: 1.7rem; letter-spacing: 0.5px; color: #1a1a1a; text-align: center; width: 100%; }
+    .main-section { flex: 2; min-width: 300px; }
+    .table-wrapper { overflow-x: auto; width: 100%; border: 1px solid #e0e0e0; border-radius: 1.2rem; background: #fafafa; }
+    table { width: 100%; border-collapse: collapse; min-width: 550px; font-size: 0.8rem; white-space: nowrap; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem 0.4rem; text-align: center; vertical-align: middle; background: white; }
+    th { background: #f5f5f5; font-weight: 700; color: #1a1a1a; position: sticky; top: 0; }
+    .date-col { font-weight: 600; background: #fafafa; white-space: nowrap; }
+    input, select { width: 100%; border: 1px solid #ccc; border-radius: 0.6rem; padding: 0.4rem 0.3rem; font-size: 0.75rem; text-align: center; background: white; outline: none; font-family: inherit; -webkit-appearance: none; appearance: none; }
+    input:focus, select:focus { border-color: #1a1a1a; }
+    .readonly-cell { color: #333; font-size: 0.8rem; min-height: 2rem; display: flex; align-items: center; justify-content: center; }
+    .empty-cell { color: #bbb; }
+    .summary-section { flex: 1; min-width: 220px; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 1.2rem; padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; position: sticky; top: 0.8rem; }
+    .summary-title { font-weight: 700; font-size: 1rem; color: #1a1a1a; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #333; }
+    .summary-value { font-weight: 700; color: #1a1a1a; }
+    .sync-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; font-size: 0.7rem; border-top: 1px solid #ddd; padding-top: 0.6rem; margin-top: 0.3rem; }
+    .sync-row input { width: auto; flex: 1; min-width: 60px; padding: 0.3rem 0.5rem; font-size: 0.7rem; border-radius: 0.5rem; border: 1px solid #ccc; }
+    .sync-row button { padding: 0.3rem 0.7rem; font-size: 0.65rem; border-radius: 1rem; border: 1px solid #aaa; background: white; cursor: pointer; white-space: nowrap; font-weight: 600; }
+    .sync-row button:active { background: #1a1a1a; color: white; }
+    .history-box { margin-top: 0.5rem; border-top: 1px solid #ddd; padding-top: 0.6rem; max-height: 180px; overflow-y: auto; font-size: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .history-item { display: flex; justify-content: space-between; color: #555; background: #fff; padding: 0.3rem 0.6rem; border-radius: 0.5rem; border: 1px solid #eee; }
+    .note { font-size: 0.65rem; color: #999; text-align: center; }
+    .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: flex; justify-content: center; align-items: center; }
+    .setup-panel { background: white; border-radius: 2rem; padding: 1.5rem; width: 90%; max-width: 380px; display: flex; flex-direction: column; gap: 0.8rem; }
+    .setup-panel input { padding: 0.6rem 1rem; font-size: 0.85rem; border-radius: 1rem; border: 1px solid #ccc; }
+    .setup-panel button { padding: 0.7rem; border-radius: 2rem; background: #1a1a1a; color: white; font-weight: 700; border: none; cursor: pointer; }
+    @media (max-width: 700px) { .container { flex-direction: column; } .summary-section { position: static; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>减肥监测</h1>
+  <div class="main-section">
+    <div class="table-wrapper">
+      <table id="mainTable">
+        <thead> <tr> <th>日期</th> <th>体重 (kg)</th> <th>饮食合理</th> <th>饮水达标</th> <th>运动</th> </tr> </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="summary-section" id="summaryPanel">
+    <div class="summary-title">减肥进度分析</div>
+    <div class="summary-row"><span>身高</span><span class="summary-value">157 cm</span></div>
+    <div class="summary-row"><span>基线体重 (3.22)</span><span class="summary-value" id="baseWeightDisplay">80.5 kg</span></div>
+    <div class="summary-row"><span>当前体重</span><span class="summary-value" id="currentWeightDisplay">--</span></div>
+    <div class="summary-row"><span>目标体重</span><span class="summary-value">53 kg</span></div>
+    <div class="summary-row"><span>每日减重效率</span><span class="summary-value" id="efficiencyDisplay">--</span></div>
+    <div class="summary-row"><span>还需减重</span><span class="summary-value" id="remainKgDisplay">--</span></div>
+    <div class="summary-row"><span>理想剩余天数</span><span class="summary-value" id="remainDaysDisplay">--</span></div>
+    <div class="history-box" id="historyBox"><div style="color:#999;text-align:center;">暂无历史分析</div></div>
+    <div class="sync-row">
+      <input type="password" id="syncPassword" placeholder="同步密码">
+      <button id="uploadBtn">上传</button>
+      <button id="downloadBtn">下载</button>
+      <span id="syncStatus" style="font-size:0.65rem;color:#999;"></span>
+    </div>
+    <div class="note">数据加密后存到你的GitHub仓库</div>
+  </div>
+</div>
+
+<!-- 首次配置面板 -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-panel">
+    <h3 style="text-align:center;">配置 GitHub 同步</h3>
+    <input type="text" id="githubUserInput" placeholder="GitHub 用户名">
+    <input type="text" id="repoInput" placeholder="仓库名（如 NBACK）">
+    <input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)">
+    <button id="saveSetupBtn">保存配置</button>
+    <div style="font-size:0.65rem;color:#999;text-align:center;">
+      Token 获取：github.com/settings/tokens （勾选 repo）
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const STORAGE_KEY = 'diet_monitor_v2';
+    const HISTORY_KEY = 'diet_history_v2';
+    const SETUP_KEY = 'diet_sync_config';
+    const SYNC_FILE = 'weight_data.json';
+
+    const DEFAULT_RECORDS = {
+      "2026-03-22": { weight: "80.5", diet: "", water: "", exercise: "" },
+      "2026-04-28": { weight: "71.5", diet: "", water: "", exercise: "" }
+    };
+
+    let records = {};
+    let historySnapshots = [];
+    let syncConfig = null;
+
+    const tableBody = document.getElementById('tableBody');
+    const baseWeightDisplay = document.getElementById('baseWeightDisplay');
+    const currentWeightDisplay = document.getElementById('currentWeightDisplay');
+    const efficiencyDisplay = document.getElementById('efficiencyDisplay');
+    const remainKgDisplay = document.getElementById('remainKgDisplay');
+    const remainDaysDisplay = document.getElementById('remainDaysDisplay');
+    const historyBox = document.getElementById('historyBox');
+    const syncPassword = document.getElementById('syncPassword');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const syncStatus = document.getElementById('syncStatus');
+    const setupOverlay = document.getElementById('setupOverlay');
+    const githubUserInput = document.getElementById('githubUserInput');
+    const repoInput = document.getElementById('repoInput');
+    const tokenInput = document.getElementById('tokenInput');
+    const saveSetupBtn = document.getElementById('saveSetupBtn');
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    // 加密/解密
+    function encrypt(text, password) {
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+      }
+      return btoa(result);
+    }
+    function decrypt(encBase64, password) {
+      try {
+        const str = atob(encBase64);
+        let result = '';
+        for (let i = 0; i < str.length; i++) {
+          result += String.fromCharCode(str.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+        }
+        return result;
+      } catch(e) { return null; }
+    }
+
+    // 同步配置
+    function loadSyncConfig() {
+      const stored = localStorage.getItem(SETUP_KEY);
+      if (stored) {
+        try { syncConfig = JSON.parse(stored); } catch { syncConfig = null; }
+      }
+      if (syncConfig && syncConfig.username && syncConfig.token && syncConfig.repo) {
+        setupOverlay.style.display = 'none';
+      } else {
+        setupOverlay.style.display = 'flex';
+        syncConfig = null;
+      }
+    }
+    function saveSyncConfig() {
+      const u = githubUserInput.value.trim();
+      const r = repoInput.value.trim();
+      const t = tokenInput.value.trim();
+      if (!u || !r || !t) { alert('请填完整'); return; }
+      syncConfig = { username: u, repo: r, token: t };
+      localStorage.setItem(SETUP_KEY, JSON.stringify(syncConfig));
+      setupOverlay.style.display = 'none';
+    }
+
+    // 数据加载
+    function loadAll() {
+      try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { records = {}; }
+      for (const [date, entry] of Object.entries(DEFAULT_RECORDS)) {
+        if (!records[date]) records[date] = { ...entry };
+        else {
+          if (!records[date].weight) records[date].weight = entry.weight;
+          if (records[date].diet === undefined) records[date].diet = entry.diet;
+          if (records[date].water === undefined) records[date].water = entry.water;
+          if (records[date].exercise === undefined) records[date].exercise = entry.exercise;
+        }
+      }
+      try { historySnapshots = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { historySnapshots = []; }
+      saveRecords();
+    }
+    function saveRecords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+    function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(historySnapshots)); }
+
+    function cleanEmptyRows() {
+      const today = getToday();
+      let changed = false;
+      for (const date of Object.keys(records)) {
+        if (date === today) continue;
+        if ([records[date].weight, records[date].diet, records[date].water, records[date].exercise].every(v => v === '' || v === null || v === undefined)) {
+          delete records[date]; changed = true;
+        }
+      }
+      if (changed) saveRecords();
+    }
+
+    function getLatestWeightInfo() {
+      const dates = Object.keys(records).sort();
+      for (let i = dates.length-1; i >= 0; i--) {
+        const w = records[dates[i]].weight;
+        if (w && w !== '未测' && !isNaN(parseFloat(w))) return { date: dates[i], weight: parseFloat(w) };
+      }
+      return { date: null, weight: null };
+    }
+
+    function computeAnalysis() {
+      const baseW = 80.5, target = 53, baseDate = new Date('2026-03-22');
+      const { date: latestStr, weight: curW } = getLatestWeightInfo();
+      if (curW === null) return null;
+      const diffDays = Math.max(0, Math.floor((new Date(latestStr) - baseDate) / 86400000));
+      const eff = diffDays > 0 ? (baseW - curW) / diffDays : 0;
+      const remain = curW - target;
+      return { curW, eff, remain, daysNeeded: remain <= 0 ? 0 : (eff > 0 ? Math.ceil(remain / eff) : null) };
+    }
+
+    function updateSummary() {
+      const a = computeAnalysis();
+      if (a) {
+        currentWeightDisplay.textContent = a.curW.toFixed(1) + ' kg';
+        efficiencyDisplay.textContent = a.eff.toFixed(4) + ' kg/天';
+        remainKgDisplay.textContent = a.remain > 0 ? a.remain.toFixed(1) + ' kg' : '已完成';
+        remainDaysDisplay.textContent = a.daysNeeded !== null ? (a.daysNeeded <= 0 ? '已完成' : a.daysNeeded + ' 天') : '--';
+      } else {
+        currentWeightDisplay.textContent = '暂无有效体重';
+        efficiencyDisplay.textContent = '--'; remainKgDisplay.textContent = '--'; remainDaysDisplay.textContent = '--';
+      }
+    }
+
+    function maybeSnapshotToday() {
+      const today = getToday();
+      if (!historySnapshots.some(h => h.date === today)) {
+        const a = computeAnalysis();
+        if (a) {
+          historySnapshots.push({ date: today, time: new Date().toLocaleString('zh-CN'), weight: a.curW, eff: a.eff, remain: a.remain, days: a.daysNeeded });
+          if (historySnapshots.length > 60) historySnapshots.splice(0, historySnapshots.length - 60);
+          saveHistory();
+          renderHistory();
+        }
+      }
+    }
+
+    function renderHistory() {
+      historyBox.innerHTML = '';
+      if (!historySnapshots.length) { historyBox.innerHTML = '<div style="color:#999;text-align:center;">暂无历史分析</div>'; return; }
+      [...historySnapshots].reverse().forEach(h => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `<span>${h.date}</span><span>${h.weight.toFixed(1)}kg | ${h.eff.toFixed(3)}kg/天 | 剩${h.remain>0?h.remain.toFixed(1)+'kg':'0'} | ${h.days!==null?(h.days<=0?'完成':h.days+'天'):'-'}</span>`;
+        historyBox.appendChild(div);
+      });
+    }
+
+    function renderTable() {
+      const allDates = new Set(Object.keys(records));
+      allDates.add(getToday());
+      const sorted = [...allDates].sort().reverse();
+      tableBody.innerHTML = '';
+      sorted.forEach(dateStr => {
+        const entry = records[dateStr] || { weight: '', diet: '', water: '', exercise: '' };
+        const isToday = dateStr === getToday();
+        const row = document.createElement('tr');
+        const dc = document.createElement('td'); dc.className = 'date-col'; dc.textContent = dateStr; row.appendChild(dc);
+        function cell(field, opts = null) {
+          const td = document.createElement('td');
+          if (isToday) {
+            if (opts) {
+              const sel = document.createElement('select');
+              const empty = document.createElement('option'); empty.value = ''; empty.textContent = '--'; sel.appendChild(empty);
+              opts.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; if (entry[field] === o) opt.selected = true; sel.appendChild(opt); });
+              sel.addEventListener('change', e => saveCell(dateStr, field, e.target.value));
+              td.appendChild(sel);
+            } else {
+              const inp = document.createElement('input'); inp.type = 'text'; inp.value = entry[field] || ''; inp.placeholder = '未测';
+              inp.addEventListener('blur', e => saveCell(dateStr, field, e.target.value.trim() || '未测'));
+              td.appendChild(inp);
+            }
+          } else {
+            const span = document.createElement('span'); span.className = 'readonly-cell' + (!entry[field] ? ' empty-cell' : '');
+            span.textContent = entry[field] || '-'; td.appendChild(span);
+          }
+          return td;
+        }
+        row.appendChild(cell('weight'));
+        row.appendChild(cell('diet', ['是', '否']));
+        row.appendChild(cell('water', ['不足', '适中', '充足']));
+        row.appendChild(cell('exercise', ['无运动', '适量运动', '大量运动']));
+        tableBody.appendChild(row);
+      });
+    }
+
+    function saveCell(dateStr, field, value) {
+      if (!records[dateStr]) records[dateStr] = { weight: '未测', diet: '', water: '', exercise: '' };
+      records[dateStr][field] = value;
+      saveRecords();
+      updateSummary();
+      maybeSnapshotToday();
+    }
+
+    // GitHub 同步
+    async function uploadToGitHub() {
+      if (!syncConfig) { syncStatus.textContent = '请先配置GitHub'; return; }
+      const pw = syncPassword.value;
+      if (!pw) { syncStatus.textContent = '请输入同步密码'; return; }
+      const payload = { records, historySnapshots };
+      const plain = JSON.stringify(payload);
+      const encrypted = encrypt(plain, pw);
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify({ data: encrypted }))));
+      const apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+
+      let sha = null;
+      try {
+        const resp = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` } });
+        if (resp.ok) { const d = await resp.json(); sha = d.sha; }
+      } catch(e) {}
+
+      const body = { message: 'update weight data', content };
+      if (sha) body.sha = sha;
+
+      const resp = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Authorization': `token ${syncConfig.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (resp.ok) {
+        syncStatus.textContent = '已上传 ' + new Date().toLocaleTimeString('zh-CN');
+      } else {
+        const err = await resp.json();
+        syncStatus.textContent = '上传失败: ' + (err.message || '未知');
+      }
+    }
+
+    async function downloadFromGitHub() {
+      if (!syncConfig) { syncStatus.textContent = '请先配置GitHub'; return; }
+      const pw = syncPassword.value;
+      if (!pw) { syncStatus.textContent = '请输入同步密码'; return; }
+      const apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+      const resp = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` } });
+      if (!resp.ok) { syncStatus.textContent = '云端暂无备份'; return; }
+      const data = await resp.json();
+      try {
+        const wrapper = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+        const plain = decrypt(wrapper.data, pw);
+        if (!plain) { syncStatus.textContent = '密码错误'; return; }
+        const parsed = JSON.parse(plain);
+        if (parsed.records) records = parsed.records;
+        if (parsed.historySnapshots) historySnapshots = parsed.historySnapshots;
+        saveRecords();
+        saveHistory();
+        renderTable();
+        updateSummary();
+        renderHistory();
+        syncStatus.textContent = '已下载 ' + new Date().toLocaleTimeString('zh-CN');
+      } catch(e) {
+        syncStatus.textContent = '数据格式错误或密码不对';
+      }
+    }
+
+    function dailyCheck() {
+      const today = getToday();
+      if (!records[today]) { records[today] = { weight: '未测', diet: '', water: '', exercise: '' }; saveRecords(); }
+      cleanEmptyRows();
+      maybeSnapshotToday();
+      renderTable();
+      updateSummary();
+      renderHistory();
+    }
+
+    // 事件
+    uploadBtn.addEventListener('click', uploadToGitHub);
+    downloadBtn.addEventListener('click', downloadFromGitHub);
+    saveSetupBtn.addEventListener('click', saveSyncConfig);
+
+    loadSyncConfig();
+    loadAll();
+    dailyCheck();
+    setInterval(() => { if (getToday() !== sessionStorage.getItem('lastDay')) { sessionStorage.setItem('lastDay', getToday()); dailyCheck(); } }, 60000);
+    sessionStorage.setItem('lastDay', getToday());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dailyCheck(); });
+  })();
+</script>
+</body>
+</html>

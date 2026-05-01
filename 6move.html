@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精力与感知 · 日常恢复</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f5f3f0;
+            font-family: 'Segoe UI', 'Noto Sans', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            margin: 0;
+            color: #2e2b26;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+            padding: 2rem 1.8rem;
+            max-width: 650px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 400;
+            margin-bottom: 0.25rem;
+            letter-spacing: 0.5px;
+            color: #3d3929;
+        }
+        .date-header {
+            font-size: 0.95rem;
+            color: #7b6e5d;
+            margin-bottom: 1.8rem;
+            border-bottom: 1px solid #e6dfd3;
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .sub-note {
+            font-size: 0.8rem;
+            color: #aa9c87;
+            background: #faf7f2;
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.8rem;
+        }
+        th {
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #8b7a62;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding-bottom: 0.7rem;
+            border-bottom: 1px solid #e0d7c8;
+        }
+        th:first-child { width: 32px; }
+        th:last-child { width: 44px; text-align: center; }
+        td {
+            padding: 0.9rem 0.2rem;
+            border-bottom: 1px dashed #e2dbcf;
+            vertical-align: middle;
+            font-size: 0.98rem;
+            line-height: 1.4;
+        }
+        td.task-desc {
+            color: #3b362c;
+        }
+        .task-hint {
+            display: block;
+            font-size: 0.8rem;
+            color: #9b8c78;
+            margin-top: 0.2rem;
+        }
+        input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+            accent-color: #7f6e55;
+            margin: 0 auto;
+            display: block;
+        }
+        .stats {
+            background: #faf8f4;
+            border-radius: 16px;
+            padding: 1rem 1.2rem;
+            font-size: 0.9rem;
+            color: #5f5543;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+        .week-summary {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .day-dot {
+            background: #e7e0d5;
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #5b4f3e;
+        }
+        .day-dot.today {
+            background: #cbb295;
+            color: white;
+            font-weight: 600;
+        }
+        .day-dot.done {
+            background: #b7ab93;
+            color: white;
+        }
+        .reset-btn {
+            background: none;
+            border: 1px solid #cfc4b2;
+            color: #6b5e4b;
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            background: white;
+        }
+        .reset-btn:hover {
+            background: #f1ede7;
+            border-color: #b3a084;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 1.5rem 1.2rem; }
+            h1 { font-size: 1.4rem; }
+            td { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌙 精力与感知恢复</h1>
+        <div class="date-header">
+            <span id="dateDisplay"></span>
+            <span class="sub-note" id="yesterdayHint"></span>
+        </div>
+
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>今日微行动</th>
+                    <th>✔</th>
+                </tr>
+            </thead>
+            <tbody id="taskBody">
+                <!-- 动态生成 -->
+            </tbody>
+        </table>
+
+        <div class="stats">
+            <span id="streakText"></span>
+            <div class="week-summary" id="weekDots"></div>
+            <button class="reset-btn" id="clearTodayBtn">清除今天勾选</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 固定任务列表 ----------
+            const tasks = [
+                {
+                    title: "微小主动恢复动作",
+                    hint: "完全由你掌控、无评价风险的小事。例如：认真冲杯咖啡、手写二句废话、给植物擦叶子。"
+                },
+                {
+                    title: "记录中立时刻",
+                    hint: "写下一句工作中没有不快、无评价压力的中立片段。无需正能量，只需真实。"
+                },
+                {
+                    title: "状态化接纳练习",
+                    hint: "当感到精力枯竭时，对自己说：“我今天的高认知额度用完了，不是我本身低电量。”"
+                },
+                {
+                    title: "10秒感官观察",
+                    hint: "在回家坐下、窗边或刷牙时，关闭手机，花10-15秒只捕捉一种感官：气味、声音、光线冷暖。"
+                },
+                {
+                    title: "低配版环境触发",
+                    hint: "雨后楼下站片刻、夜间关大灯只开小灯开窗，让外部不常规信号进入。不强求出游。"
+                },
+                {
+                    title: "感知高峰残响记录",
+                    hint: "若今天有片刻感知变敏锐，用几个词速记（如：雨声让房子变小）。注：非必须，若有则记。"
+                }
+            ];
+
+            const STORAGE_KEY = 'energy_perception_log';
+            const todayStr = getDateString(new Date());
+
+            // DOM 元素
+            const dateDisplay = document.getElementById('dateDisplay');
+            const yesterdayHint = document.getElementById('yesterdayHint');
+            const taskBody = document.getElementById('taskBody');
+            const streakText = document.getElementById('streakText');
+            const weekDots = document.getElementById('weekDots');
+            const clearTodayBtn = document.getElementById('clearTodayBtn');
+
+            // ---------- 工具函数 ----------
+            function getDateString(date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function loadData() {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return {};
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    return {};
+                }
+            }
+
+            function saveData(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            // 获取某天的完成状态数组（长度为tasks.length，布尔）
+            function getDayStatus(data, dateStr) {
+                return data[dateStr] || new Array(tasks.length).fill(false);
+            }
+
+            // 设置某天的状态
+            function setDayStatus(data, dateStr, statusArray) {
+                data[dateStr] = statusArray;
+                // 清理太久远的数据（保留最近60天）
+                const allDates = Object.keys(data).sort();
+                if (allDates.length > 60) {
+                    const removeDates = allDates.slice(0, allDates.length - 60);
+                    removeDates.forEach(d => delete data[d]);
+                }
+                return data;
+            }
+
+            // 计算今天完成了几项
+            function countCompleted(statusArray) {
+                return statusArray.filter(Boolean).length;
+            }
+
+            // ---------- 渲染 ----------
+            function render() {
+                let data = loadData();
+                const todayStatus = getDayStatus(data, todayStr);
+
+                // 显示日期
+                const todayDateObj = new Date();
+                const dayOfWeek = ['周日','周一','周二','周三','周四','周五','周六'][todayDateObj.getDay()];
+                dateDisplay.textContent = `${todayStr} ${dayOfWeek}`;
+
+                // 昨日提示
+                const yesterday = new Date(todayDateObj);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = getDateString(yesterday);
+                const yesterdayStatus = getDayStatus(data, yesterdayStr);
+                const yesterdayCompleted = countCompleted(yesterdayStatus);
+                if (yesterdayCompleted > 0) {
+                    yesterdayHint.textContent = `昨天完成了 ${yesterdayCompleted}/${tasks.length} 项`;
+                } else {
+                    yesterdayHint.textContent = `昨天没有记录`;
+                }
+
+                // 渲染任务表格
+                taskBody.innerHTML = '';
+                todayStatus.forEach((checked, index) => {
+                    const task = tasks[index];
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="text-align:center; font-size:0.9rem; color:#aa9c87;">${index + 1}</td>
+                        <td class="task-desc">
+                            ${task.title}
+                            <span class="task-hint">${task.hint}</span>
+                        </td>
+                        <td><input type="checkbox" data-index="${index}" ${checked ? 'checked' : ''}></td>
+                    `;
+                    taskBody.appendChild(tr);
+                });
+
+                // 绑定勾选事件
+                document.querySelectorAll('#taskBody input[type="checkbox"]').forEach(cb => {
+                    cb.addEventListener('change', function(e) {
+                        const idx = parseInt(this.getAttribute('data-index'));
+                        let currentData = loadData();
+                        let currentStatus = getDayStatus(currentData, todayStr);
+                        currentStatus[idx] = this.checked;
+                        currentData = setDayStatus(currentData, todayStr, currentStatus);
+                        saveData(currentData);
+                        // 更新统计区域
+                        updateStats(currentData);
+                    });
+                });
+
+                // 更新统计与周点
+                updateStats(data);
+
+                // 清除今日按钮
+                clearTodayBtn.onclick = function() {
+                    if (confirm('确定清除今日所有勾选吗？')) {
+                        let currentData = loadData();
+                        currentData = setDayStatus(currentData, todayStr, new Array(tasks.length).fill(false));
+                        saveData(currentData);
+                        render();
+                    }
+                };
+            }
+
+            function updateStats(data) {
+                const todayStatus = getDayStatus(data, todayStr);
+                const completedToday = countCompleted(todayStatus);
+                const total = tasks.length;
+                streakText.textContent = `今日完成 ${completedToday}/${total}`;
+
+                // 生成最近7天的点
+                const dotsContainer = weekDots;
+                dotsContainer.innerHTML = '';
+                const todayDate = new Date();
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(todayDate);
+                    d.setDate(d.getDate() - i);
+                    const dStr = getDateString(d);
+                    const status = getDayStatus(data, dStr);
+                    const count = countCompleted(status);
+                    const dot = document.createElement('span');
+                    dot.className = 'day-dot';
+                    if (i === 0) dot.classList.add('today');
+                    else if (count >= 3) dot.classList.add('done'); // 完成一半以上视为不错的一天
+                    dot.textContent = d.getDate();
+                    dot.title = `${dStr}: ${count}/${total} 项`;
+                    dotsContainer.appendChild(dot);
+                }
+            }
+
+            // 初次渲染
+            render();
+
+            // 如果页面跨天重新打开（不必手动刷新），但每天自动更新需要检测日期变化。
+            // 每次页面获得焦点时检查日期是否变了，若变了则重新渲染。
+            window.addEventListener('focus', () => {
+                const newTodayStr = getDateString(new Date());
+                if (newTodayStr !== todayStr) {
+                    // 日期改变，刷新页面以重置变量和显示
+                    location.reload();
+                }
+            });
+
+            // 也每隔一段时间检查（备选）
+            setInterval(() => {
+                const newTodayStr = getDateString(new Date());
+                if (newTodayStr !== todayStr) {
+                    location.reload();
+                }
+            }, 60000); // 每分钟检查一次
+        })();
+    </script>
+</body>
+</html>

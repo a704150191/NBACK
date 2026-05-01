@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPS 底线本能 · 训练框架</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1b1d1e;
+            font-family: 'Segoe UI', 'Noto Sans', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            margin: 0;
+            color: #d4cfc7;
+        }
+        .container {
+            background: #252729;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            padding: 2rem 1.8rem;
+            max-width: 750px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            letter-spacing: 0.8px;
+            color: #e3dac9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #9b9687;
+            margin-bottom: 1.8rem;
+            border-bottom: 1px solid #3a3c3d;
+            padding-bottom: 1rem;
+        }
+        .module {
+            background: #2c2e30;
+            border-radius: 16px;
+            padding: 1.2rem 1.2rem 0.8rem;
+            margin-bottom: 1.2rem;
+            border-left: 4px solid #8b7a62;
+        }
+        .module h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #e3d9c2;
+        }
+        .module .goal {
+            font-size: 0.8rem;
+            color: #9b8c78;
+            margin-bottom: 0.8rem;
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .goal span {
+            background: #1b1d1e;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5rem;
+        }
+        th {
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: #7f7868;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #3f4142;
+        }
+        th:last-child {
+            width: 60px;
+            text-align: center;
+        }
+        td {
+            padding: 0.6rem 0.2rem;
+            border-bottom: 1px solid #333535;
+            vertical-align: middle;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            color: #cbc3b6;
+        }
+        .method-step {
+            display: block;
+            font-size: 0.82rem;
+            color: #9d9482;
+            margin-top: 0.15rem;
+        }
+        .peek-module {
+            border-left: 4px solid #b3864b;
+        }
+        .check-col {
+            text-align: center;
+        }
+        input[type="checkbox"] {
+            width: 1.15rem;
+            height: 1.15rem;
+            cursor: pointer;
+            accent-color: #9b8b6f;
+            margin: 0 auto;
+            display: block;
+        }
+        .footer-note {
+            margin-top: 1.2rem;
+            font-size: 0.8rem;
+            color: #6f685b;
+            text-align: center;
+            border-top: 1px solid #3a3c3d;
+            padding-top: 1rem;
+        }
+        .reset-link {
+            background: none;
+            border: 1px solid #4a4c4d;
+            color: #8b8472;
+            padding: 0.2rem 0.9rem;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            background: #1b1d1e;
+        }
+        .reset-link:hover {
+            border-color: #8b7a62;
+            color: #c7bfa8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 底线本能训练</h1>
+        <div class="subtitle">
+            精力低下时也必须保留的自动反应 · 每次任选1-2个模块练习，不追求全做
+            <button class="reset-link" id="resetBtn">清除勾选</button>
+        </div>
+
+        <!-- 模块1：准星高度 -->
+        <div class="module">
+            <h2>1. 准星-视角绑定控制</h2>
+            <div class="goal"><span>目标</span> 准星始终处于头部高度，转身后自动复位，不看地板</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>慢速扫墙训练</strong>
+                        <span class="method-step">开自定义，沿地图墙壁移动，保持准星贴在墙面交线/门把高度。先慢走5分钟，感觉准星“黏”在高度线上。不需开枪。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="1a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>180°落点检验</strong>
+                        <span class="method-step">随意转身180°，停下看准星是否在头线。连续10次，不调整，只观察。偏差大就再慢半拍做。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="1b"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>无准星模拟（可选）</strong>
+                        <span class="method-step">屏幕准星处贴个极小透明点，或关闭准星，用训练场靶子感知中心点。5分钟后恢复准星，感觉更敏锐。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="1c"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 模块2：听觉转向 -->
+        <div class="module">
+            <h2>2. 听觉-方向条件反射</h2>
+            <div class="goal"><span>目标</span> 听见脚步/枪声→自动转向声源，不动脑</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>纯声音转向练习</strong>
+                        <span class="method-step">训练场或死斗模式，只戴耳机不看屏幕（或闭眼），听脚步后立刻转向声源，再睁眼看准星是否对位。每次3分钟。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="2a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>声音预瞄线绑定</strong>
+                        <span class="method-step">无数次重复：听见脚步→转向+准星抬至头线高度，不做其他。练到听见就转，没转过也要转回来。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="2b"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 模块3：掩体交互 -->
+        <div class="module">
+            <h2>3. 掩体交互自动化</h2>
+            <div class="goal"><span>目标</span> 贴墙、偏头、退掩体换弹变成本能，不思考按键</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>掩体循环走位</strong>
+                        <span class="method-step">自定义图，绕掩体连续做：贴墙→偏头→回掩体→换弹→换侧偏头。循环5分钟，速度自我调节，不坏节奏即可。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="3a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>换弹-掩体条件绑定</strong>
+                        <span class="method-step">刻意在任何换弹时按下掩体/退回掩体键，哪怕安全。重复50次，直到换弹和掩体变成一套组合。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="3b"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 模块4：受伤撤退 -->
+        <div class="module">
+            <h2>4. 受击优先撤退程序</h2>
+            <div class="goal"><span>目标</span> 血条变化/方向指示→立刻回掩体，不寻敌</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>自设“损伤信号”练习</strong>
+                        <span class="method-step">死斗中，一旦屏幕闪红/血条动，立即执行：按掩体键后退→等1秒→再决定是否回击。即使能反杀也先退。刻意切掉“反杀冲动”。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="4a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>空枪撤退模拟</strong>
+                        <span class="method-step">自定义，受伤音效响起就撤退到预设安全点。不需要敌人本体，只练条件反射路径。5分钟。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="4b"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 模块5：视线扫描 -->
+        <div class="module">
+            <h2>5. 信息采集视线节奏</h2>
+            <div class="goal"><span>目标</span> 眼动自动扫窗口/门口/高点/死角，不依赖看清</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>扫视序列练习</strong>
+                        <span class="method-step">自定义空图，边走边按固定序列移眼：左窗→右门→高台→身后死角。节奏稳定，不强求看清，只练眼球路过。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="5a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>死亡回放扫视分析</strong>
+                        <span class="method-step">看回放时只注意：死前我最后一眼在看哪里？那里有没有威胁？用纸笔记一次。逐渐会下意识修正。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="5b"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 模块6：Peek抽奖（补充） -->
+        <div class="module peek-module">
+            <h2>6. 下意识Peek抽奖消耗</h2>
+            <div class="goal"><span>目标</span> 把peek变成无意识的损耗动作，不依赖“有人才开”逻辑</div>
+            <table>
+                <tr><th>训练方法</th><th>✔</th></tr>
+                <tr>
+                    <td>
+                        <strong>刻板Peek节奏练习</strong>
+                        <span class="method-step">自定义，选一堵墙，设定节拍器或心中数2下：探头→开3-5枪→撤回。不看有没有人，只完成动作。重复50次。让它变成本能节拍。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="6a"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>常规位“预抽”清单</strong>
+                        <span class="method-step">列3个常用图的常规peek位。实战时，每接近该位置就数1-2-3必须抽一次。无论信息如何，当成必经程序。完成即可，不需命中。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="6b"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>精力低下时专用循环</strong>
+                        <span class="method-step">如果感觉呆滞，强行在脑内设定简单循环：“掩体→peek 2发→撤回→换位”，重复。不思考敌人会怎样，只执行程序。</span>
+                    </td>
+                    <td class="check-col"><input type="checkbox" data-id="6c"></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer-note">
+            🔹 训练时不需要全部完成，选1-2项你今天感到容易的进行。<br>
+            🔹 所有勾选保存在浏览器。精力恢复后，你会看到这些本能留下的痕迹。
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const STORAGE_KEY = 'fps_baseline_training';
+            // 读取存储
+            function loadData() {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : {};
+            }
+            function saveData(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            // 初始化勾选
+            const data = loadData();
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                const id = cb.getAttribute('data-id');
+                if (id && data[id]) cb.checked = true;
+                cb.addEventListener('change', function() {
+                    const current = loadData();
+                    current[id] = this.checked;
+                    saveData(current);
+                });
+            });
+
+            // 清除按钮
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                if (confirm('清除所有训练勾选吗？')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

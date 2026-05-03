@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+  <title>末日余生 · 第一章</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d0d;
+      font-family: 'Segoe UI', 'Noto Serif SC', 'SimSun', serif;
+      padding: 0.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-container {
+      max-width: 520px;
+      width: 100%;
+      background: #f7f2e9;
+      border: 3px solid #2a2a2a;
+      border-radius: 0.5rem;
+      padding: 1.5rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      min-height: 85vh;
+      position: relative;
+    }
+    .chapter-title {
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #1a1a1a;
+      border-bottom: 2px solid #3a3a3a;
+      padding-bottom: 0.4rem;
+      letter-spacing: 3px;
+    }
+    .scene-text {
+      font-size: 0.9rem;
+      line-height: 2;
+      color: #1a1a1a;
+      flex: 1;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 55vh;
+      padding-right: 0.3rem;
+    }
+    .choices-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+    .choice-btn {
+      background: #1f1f1f;
+      color: #ede4d3;
+      border: 1px solid #444;
+      padding: 0.7rem 1rem;
+      border-radius: 0.3rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      letter-spacing: 0.5px;
+      font-family: inherit;
+    }
+    .choice-btn:active { background: #000; color: #fff; }
+    .death-info {
+      text-align: center;
+      color: #b33a3a;
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+    }
+    .reset-area { text-align: center; margin-top: 0.2rem; }
+    .reset-btn {
+      background: transparent;
+      border: 1px solid #aaa;
+      color: #777;
+      padding: 0.3rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .stats-p

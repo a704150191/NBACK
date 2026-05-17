@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes, apple-mobile-web-app-status-bar-style=default">
+  <title>情绪卡片</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f5f5f5;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 0.6rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .container {
+      max-width: 450px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 1.5rem;
+      padding: 1rem 0.8rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: #333;
+      text-align: center;
+    }
+    .input-box {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .input-box input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 1rem;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.85rem;
+      outline: none;
+      background: #fff;
+    }
+    .input-box input:focus {
+      border-color: #1a1a1a;
+    }
+    .intensity-row {
+      display: flex;
+      gap: 0.3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .intensity-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 0.6rem;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #555;
+      cursor: pointer;
+      transition: 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .intensity-btn:active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+    }
+    .mini-card {
+      background: #fffef9;
+      border: 1px solid #e8e4d9;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.4rem 0.25rem;
+      font-size: 0.7rem;
+      color: #444;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      word-break: break-word;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .mini-card .card-text {
+      font-size: 0.68rem;
+      line-height: 1.35;
+      flex: 1;
+    }
+    .mini-card .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.6rem;
+      color: #aaa;
+    }
+    .mini-card .card-intensity {
+      font-weight: 700;
+      color: #1a1a1a;
+      background: #eee;
+      border-radius: 0.3rem;
+      padding: 0.05rem 0.35rem;
+      font-size: 0.6rem;
+    }
+    .mini-card .card-delete {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      background: transparent;
+      border: none;
+      color: #ddd;
+      font-size: 0.6rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .export-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .export-btn {
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .empty-state {
+      text-align: center;
+      color: #ccc;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>情绪卡片</h1>
+  <div class="input-box">
+    <input type="text" id="contentInput" placeholder="记录此刻...">
+  </div>
+  <div class="intensity-row">
+    <button class="intensity-btn" data-intensity="1">1</button>
+    <button class="intensity-btn" data-intensity="2">2</button>
+    <button class="intensity-btn" data-intensity="3">3</button>
+    <button class="intensity-btn" data-intensity="4">4</button>
+    <button class="intensity-btn" data-intensity="5">5</button>
+  </div>
+  <div class="cards-grid" id="cardsGrid">
+    <div class="empty-state">还没有卡片</div>
+  </div>
+  <div class="export-row">
+    <button class="export-btn" id="exportBtn">📤 导出</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const STORAGE_KEY = 'mini_emotion_cards';
+    let records = [];
+
+    const contentInput = document.getElementById('contentInput');
+    const intensityBtns = document.querySelectorAll('.intensity-btn');
+    const cardsGrid = document.getElementById('cardsGrid');
+    const exportBtn = document.getElementById('exportBtn');
+
+    function loadRecords() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      records = stored ? (() => { try { return JSON.parse(stored); } catch { return []; } })() : [];
+    }
+
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getMonth()+1}/${d.getDate()}`;
+    }
+
+    function renderCards() {
+      if (records.length === 0) {
+        cardsGrid.innerHTML = '<div class="empty-state">还没有卡片</div>';
+        return;
+      }
+      const reversed = [...records].reverse();
+      cardsGrid.innerHTML = '';
+      reversed.forEach((rec, i) => {
+        const originalIndex = records.length - 1 - i;
+        const card = document.createElement('div');
+        card.className = 'mini-card';
+        card.innerHTML = `
+          <button class="card-delete" data-index="${originalIndex}">✕</button>
+          <div class="card-text">${escapeHtml(rec.text)}</div>
+          <div class="card-footer">
+            <span>${rec.date}</span>
+            <span class="card-intensity">${rec.intensity}</span>
+          </div>
+        `;
+        card.querySelector('.card-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteRecord(originalIndex);
+        });
+        cardsGrid.appendChild(card);
+      });
+    }
+
+    function addRecord(text, intensity) {
+      records.push({
+        text: text,
+        intensity: intensity,
+        date: getToday()
+      });
+      saveRecords();
+      renderCards();
+    }
+
+    function deleteRecord(index) {
+      records.splice(index, 1);
+      saveRecords();
+      renderCards();
+    }
+
+    intensityBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = contentInput.value.trim();
+        if (!text) { alert('请输入内容'); return; }
+        addRecord(text, parseInt(btn.dataset.intensity));
+        contentInput.value = '';
+        contentInput.focus();
+      });
+    });
+
+    contentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const text = contentInput.value.trim();
+        if (!text) { alert('请输入内容'); return; }
+        addRecord(text, 3);
+        contentInput.value = '';
+        contentInput.focus();
+      }
+    });
+
+    function exportJSON() {
+      if (records.length === 0) { alert('没有记录可导出'); return; }
+      const jsonStr = JSON.stringify(records, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `情绪卡片_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    exportBtn.addEventListener('click', exportJSON);
+
+    loadRecords();
+    renderCards();
+  })();
+</script>
+</body>
+</html>

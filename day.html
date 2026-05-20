@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+    <title>每日记录表</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #ffffff; font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, sans-serif; padding: 0.6rem; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        .app-container { max-width: 100%; width: 100%; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 1.8rem; padding: 1.2rem 1rem 1.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 1.2rem; }
+        h1 { font-weight: 600; font-size: 1.5rem; color: #1a1a1a; letter-spacing: 1px; text-align: center; }
+        .input-area { display: flex; gap: 0.5rem; align-items: center; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 2rem; padding: 0.4rem; }
+        .input-area input { flex: 1; border: none; background: transparent; padding: 0.7rem 1rem; font-size: 0.95rem; outline: none; color: #1a1a1a; }
+        .input-area button { background: #1a1a1a; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 2rem; font-weight: 700; font-size: 0.9rem; cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+        .category-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; }
+        .category-selector.active { display: flex; }
+        .category-panel { background: white; border-radius: 2rem; padding: 1.5rem 1rem; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 1rem; }
+        .category-panel h3 { text-align: center; font-size: 1.2rem; color: #1a1a1a; margin-bottom: 0.2rem; }
+        .grid-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+        .grid-choices button { background: white; border: 2px solid #1a1a1a; border-radius: 1.2rem; padding: 0.8rem 0.3rem; font-weight: 700; font-size: 0.85rem; color: #1a1a1a; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; display: flex; align-items: center; justify-content: center; text-align: center; word-break: break-word; }
+        .grid-choices button:active { background: #1a1a1a; color: white; }
+        .cancel-btn { background: #f0f0f0; border: none; border-radius: 2rem; padding: 0.7rem; font-weight: 600; color: #555; cursor: pointer; text-align: center; margin-top: 0.3rem; }
+        .table-wrapper { overflow-x: auto; width: 100%; border: 1px solid #e0e0e0; border-radius: 1.2rem; background: #fafafa; }
+        table { width: 100%; border-collapse: collapse; min-width: 650px; font-size: 0.8rem; table-layout: auto; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem 0.3rem; text-align: left; vertical-align: top; background: white; }
+        th { background: #f5f5f5; font-weight: 700; color: #1a1a1a; position: sticky; top: 0; }
+        .date-col { font-weight: 600; white-space: nowrap; color: #333; background: #fafafa; width: 80px; }
+        .content-cell { font-size: 0.75rem; line-height: 1.5; color: #333; min-height: 1.8rem; }
+        .content-cell ol { margin: 0; padding-left: 1.2rem; }
+        .content-cell li { margin-bottom: 2px; word-break: break-word; }
+        .empty-cell { color: #ccc; font-style: italic; }
+        .footer-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .sync-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; font-size: 0.7rem; }
+        .sync-row input { width: 80px; padding: 0.3rem 0.5rem; font-size: 0.7rem; border-radius: 0.5rem; border: 1px solid #ccc; }
+        .sync-row button { padding: 0.3rem 0.7rem; font-size: 0.65rem; border-radius: 1rem; border: 1px solid #aaa; background: white; cursor: pointer; white-space: nowrap; font-weight: 600; }
+        .sync-row button:active { background: #1a1a1a; color: white; }
+        .reset-link { font-size: 0.6rem; color: #bbb; text-align: center; cursor: pointer; text-decoration: underline; margin-top: 0.1rem; }
+        .footer-note { text-align: center; color: #999; font-size: 0.65rem; margin-top: 0.2rem; }
+        .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; display: flex; justify-content: center; align-items: center; }
+        .setup-panel { background: white; border-radius: 2rem; padding: 1.5rem; width: 90%; max-width: 380px; display: flex; flex-direction: column; gap: 0.8rem; }
+        .setup-panel input { padding: 0.6rem 1rem; font-size: 0.85rem; border-radius: 1rem; border: 1px solid #ccc; }
+        .setup-panel button { padding: 0.7rem; border-radius: 2rem; background: #1a1a1a; color: white; font-weight: 700; border: none; cursor: pointer; }
+        .report-box { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+        .api-settings { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+        .api-settings input { width: 180px; padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; }
+        .date-range { display: flex; gap: 0.3rem; align-items: center; }
+        .date-range input { padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; width: 110px; }
+        @media (max-width: 500px) { .app-container { padding: 1rem 0.8rem; } th, td { padding: 0.4rem 0.2rem; font-size: 0.7rem; } }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>每日记录 · 十一项追踪</h1>
+
+    <div class="input-area">
+        <input type="text" id="contentInput" placeholder="输入内容，点击右侧添加...">
+        <button id="addBtn">确认</button>
+    </div>
+
+    <div class="category-selector" id="categorySelector">
+        <div class="category-panel">
+            <h3>选择分类</h3>
+            <div class="grid-choices" id="categoryGrid">
+                <button data-category="戒烟">1. 戒烟</button>
+                <button data-category="鑫康合COPD">2. 鑫康合COPD</button>
+                <button data-category="降糖">3. 降糖</button>
+                <button data-category="肺动脉高压">4. 肺动脉高压</button>
+                <button data-category="EFC17919">5. EFC17919</button>
+                <button data-category="B001">6. B001</button>
+                <button data-category="海思科COPD关中心">7. 海思科COPD关中心</button>
+                <button data-category="海思科支扩关中心">8. 海思科支扩关中心</button>
+                <button data-category="康诺亚哮喘">9. 康诺亚哮喘</button>
+                <button data-category="公司">10. 公司</button>
+                <button data-category="中心">11. 中心</button>
+            </div>
+            <button class="cancel-btn" id="cancelCategoryBtn">取消</button>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="recordTable">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>戒烟</th>
+                    <th>鑫康合COPD</th>
+                    <th>降糖</th>
+                    <th>肺动脉高压</th>
+                    <th>EFC17919</th>
+                    <th>B001</th>
+                    <th>海思科COPD关中心</th>
+                    <th>海思科支扩关中心</th>
+                    <th>康诺亚哮喘</th>
+                    <th>公司</th>
+                    <th>中心</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- API 周报区域 -->
+    <div class="api-settings">
+        <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...）">
+        <div class="date-range">
+            <input type="date" id="startDate"> - <input type="date" id="endDate">
+        </div>
+        <button id="generateReportBtn" style="padding:0.2rem 0.8rem;font-size:0.65rem;border-radius:1rem;border:1px solid #aaa;background:white;cursor:pointer;">生成周报</button>
+        <span id="reportStatus" style="font-size:0.65rem;color:#999;"></span>
+    </div>
+    <div class="report-box" id="reportBox" style="display:none;"></div>
+
+    <div class="footer-row">
+        <div class="sync-row">
+            <input type="password" id="syncPassword" placeholder="同步密码">
+            <button id="uploadBtn">上传</button>
+            <button id="downloadBtn">下载</button>
+            <span id="syncStatus" style="font-size:0.65rem;color:#999;"></span>
+        </div>
+        <span class="reset-link" id="resetConfigLink">重置配置</span>
+    </div>
+    <div class="footer-note">每天自动生成一行 · 点击类别编号选择分类 · 支持AI周报</div>
+</div>
+
+<div class="setup-overlay" id="setupOverlay">
+    <div class="setup-panel">
+        <h3 style="text-align:center;">配置 GitHub 同步</h3>
+        <input type="text" id="githubUserInput" placeholder="GitHub 用户名">
+        <input type="text" id="repoInput" placeholder="仓库名（如 NBACK）">
+        <input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)">
+        <button id="saveSetupBtn">保存配置</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const STORAGE_KEY = 'daily_tracker_data';
+        const SETUP_KEY = 'tracker_sync_config';
+        const SYNC_FILE = 'daily_tracker.json';
+        const CATEGORIES = ['戒烟', '鑫康合COPD', '降糖', '肺动脉高压', 'EFC17919', 'B001', '海思科COPD关中心', '海思科支扩关中心', '康诺亚哮喘', '公司', '中心'];
+
+        let data = {};
+        let syncConfig = null;
+        let pendingContent = '';
+
+        const contentInput = document.getElementById('contentInput');
+        const addBtn = document.getElementById('addBtn');
+        const categorySelector = document.getElementById('categorySelector');
+        const categoryGrid = document.getElementById('categoryGrid');
+        const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+        const tableBody = document.getElementById('tableBody');
+        const syncPassword = document.getElementById('syncPassword');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const syncStatus = document.getElementById('syncStatus');
+        const setupOverlay = document.getElementById('setupOverlay');
+        const githubUserInput = document.getElementById('githubUserInput');
+        const repoInput = document.getElementById('repoInput');
+        const tokenInput = document.getElementById('tokenInput');
+        const saveSetupBtn = document.getElementById('saveSetupBtn');
+        const resetConfigLink = document.getElementById('resetConfigLink');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const reportBox = document.getElementById('reportBox');
+        const reportStatus = document.getElementById('reportStatus');
+
+        function getTodayString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function encrypt(text, password) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+            }
+            return btoa(result);
+        }
+        function decrypt(encBase64, password) {
+            try {
+                const str = atob(encBase64);
+                let result = '';
+                for (let i = 0; i < str.length; i++) {
+                    result += String.fromCharCode(str.charCodeAt(i) ^ password.charCodeAt(i % password.length));
+                }
+                return result;
+            } catch(e) { return null; }
+        }
+
+        function loadSyncConfig() {
+            const stored = localStorage.getItem(SETUP_KEY);
+            if (stored) { try { syncConfig = JSON.parse(stored); } catch { syncConfig = null; } }
+            if (syncConfig && syncConfig.username && syncConfig.token && syncConfig.repo) { setupOverlay.style.display = 'none'; }
+            else { setupOverlay.style.display = 'flex'; syncConfig = null; }
+        }
+        function saveSyncConfig() {
+            const u = githubUserInput.value.trim(), r = repoInput.value.trim(), t = tokenInput.value.trim();
+            if (!u || !r || !t) { alert('请填完整'); return; }
+            syncConfig = { username: u, repo: r, token: t };
+            localStorage.setItem(SETUP_KEY, JSON.stringify(syncConfig));
+            setupOverlay.style.display = 'none';
+        }
+        function resetSyncConfig() { localStorage.removeItem(SETUP_KEY); syncConfig = null; setupOverlay.style.display = 'flex'; githubUserInput.value = ''; repoInput.value = ''; tokenInput.value = ''; }
+
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            data = stored ? (() => { try { return JSON.parse(stored); } catch { return {}; } })() : {};
+            const today = getTodayString();
+            if (!data[today]) { data[today] = {}; CATEGORIES.forEach(c => data[today][c] = []); saveData(); }
+        }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+        function renderTable() {
+            const dates = Object.keys(data).sort((a,b) => b.localeCompare(a));
+            tableBody.innerHTML = '';
+            if (!dates.length) { tableBody.innerHTML = '<tr><td colspan="' + (CATEGORIES.length + 1) + '" style="text-align:center;padding:2rem;color:#999;">暂无记录</td></tr>'; return; }
+            dates.forEach(date => {
+                const row = document.createElement('tr');
+                const dc = document.createElement('td'); dc.className = 'date-col'; dc.textContent = date; row.appendChild(dc);
+                CATEGORIES.forEach(cat => {
+                    const td = document.createElement('td'); td.className = 'content-cell';
+                    const items = data[date]?.[cat] || [];
+                    if (!items.length) td.innerHTML = '<span class="empty-cell">-</span>';
+                    else { const ol = document.createElement('ol'); items.forEach(item => { const li = document.createElement('li'); li.textContent = item; ol.appendChild(li); }); td.appendChild(ol); }
+                    row.appendChild(td);
+                });
+                tableBody.appendChild(row);
+            });
+        }
+
+        function showCat() { categorySelector.classList.add('active'); }
+        function hideCat() { categorySelector.classList.remove('active'); pendingContent = ''; }
+        function addContent(cat) {
+            if (!pendingContent.trim()) return;
+            const today = getTodayString();
+            if (!data[today]) { data[today] = {}; CATEGORIES.forEach(c => data[today][c] = []); }
+            if (!data[today][cat]) data[today][cat] = [];
+            data[today][cat].push(pendingContent.trim());
+            saveData(); renderTable(); contentInput.value = ''; pendingContent = ''; hideCat();
+        }
+
+        // ===== AI 周报 =====
+        async function generateReport() {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) { reportStatus.textContent = '请填写API Key'; return; }
+            const start = startDateInput.value;
+            const end = endDateInput.value;
+            if (!start || !end) { reportStatus.textContent = '请选择日期范围'; return; }
+
+            reportStatus.textContent = '正在生成...';
+            reportBox.style.display = 'block';
+            reportBox.textContent = '';
+
+            // 收集指定日期范围的数据
+            const filteredData = {};
+            for (const [date, row] of Object.entries(data)) {
+                if (date >= start && date <= end) {
+                    filteredData[date] = row;
+                }
+            }
+            if (Object.keys(filteredData).length === 0) {
+                reportBox.textContent = '所选日期范围内没有数据。';
+                reportStatus.textContent = '';
+                return;
+            }
+
+            // 整理成文本
+            let promptText = `以下是用户在 ${start} 至 ${end} 期间的工作记录，按日期和分类排列：\n\n`;
+            const sortedDates = Object.keys(filteredData).sort();
+            for (const date of sortedDates) {
+                promptText += `【${date}】\n`;
+                const row = filteredData[date];
+                CATEGORIES.forEach(cat => {
+                    const items = row[cat] || [];
+                    if (items.length > 0) {
+                        promptText += `  ${cat}：${items.join('；')}\n`;
+                    }
+                });
+                promptText += `\n`;
+            }
+            promptText += `请根据以上数据生成一份简洁的工作周报，包含：1. 本周完成的主要工作 2. 各项目进展 3. 需要关注的问题。用中文输出，200-300字。`;
+
+            try {
+                const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        messages: [{ role: 'user', content: promptText }],
+                        temperature: 0.7,
+                        max_tokens: 600
+                    })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error?.message || resp.status);
+                }
+                const json = await resp.json();
+                reportBox.textContent = json.choices[0].message.content;
+                reportStatus.textContent = '生成完成';
+            } catch (err) {
+                reportBox.textContent = '生成失败：' + err.message;
+                reportStatus.textContent = '';
+            }
+        }
+
+        // ===== GitHub 同步 =====
+        async function upload() {
+            if (!syncConfig) { syncStatus.textContent = '请先配置'; return; }
+            const pw = syncPassword.value; if (!pw) { syncStatus.textContent = '请输入密码'; return; }
+            syncStatus.textContent = '上传中...';
+            const plain = JSON.stringify(data), encrypted = encrypt(plain, pw), content = btoa(unescape(encodeURIComponent(JSON.stringify({ data: encrypted })))), apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+            let sha = null;
+            try { const r = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` } }); if (r.ok) { const d = await r.json(); sha = d.sha; } } catch {}
+            const body = { message: 'update', content }; if (sha) body.sha = sha;
+            try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000); const r = await fetch(apiUrl, { method: 'PUT', headers: { 'Authorization': `token ${syncConfig.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: c.signal }); clearTimeout(t); if (r.ok) syncStatus.textContent = '已上传'; else { const e = await r.json().catch(()=>({})); syncStatus.textContent = '失败: ' + (e.message || r.status); } } catch(e) { syncStatus.textContent = e.name === 'AbortError' ? '超时' : '网络错误'; }
+        }
+        async function download() {
+            if (!syncConfig) { syncStatus.textContent = '请先配置'; return; }
+            const pw = syncPassword.value; if (!pw) { syncStatus.textContent = '请输入密码'; return; }
+            syncStatus.textContent = '下载中...';
+            const apiUrl = `https://api.github.com/repos/${syncConfig.username}/${syncConfig.repo}/contents/${SYNC_FILE}`;
+            try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000); const r = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` }, signal: c.signal }); clearTimeout(t); if (!r.ok) { syncStatus.textContent = '云端无备份'; return; } const d = await r.json(), wrapper = JSON.parse(decodeURIComponent(escape(atob(d.content)))), plain = decrypt(wrapper.data, pw); if (!plain) { syncStatus.textContent = '密码错误'; return; } data = JSON.parse(plain); saveData(); renderTable(); syncStatus.textContent = '已下载'; } catch(e) { syncStatus.textContent = e.name === 'AbortError' ? '超时' : '格式错误'; }
+        }
+
+        // ===== 事件绑定 =====
+        addBtn.addEventListener('click', () => { const v = contentInput.value.trim(); if (!v) { alert('请输入'); return; } pendingContent = v; showCat(); });
+        categoryGrid.querySelectorAll('button').forEach(b => b.addEventListener('click', e => addContent(e.currentTarget.dataset.category)));
+        cancelCategoryBtn.addEventListener('click', hideCat);
+        categorySelector.addEventListener('click', e => { if (e.target === categorySelector) hideCat(); });
+        contentInput.addEventListener('keypress', e => { if (e.key === 'Enter') addBtn.click(); });
+        uploadBtn.addEventListener('click', upload);
+        downloadBtn.addEventListener('click', download);
+        saveSetupBtn.addEventListener('click', saveSyncConfig);
+        resetConfigLink.addEventListener('click', () => { if (confirm('重置？')) resetSyncConfig(); });
+        generateReportBtn.addEventListener('click', generateReport);
+
+        // ===== 初始化 =====
+        loadSyncConfig(); loadData(); renderTable();
+        // 默认日期范围设为最近7天
+        const today = new Date();
+        const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDateInput.value = sevenDaysAgo.toISOString().slice(0, 10);
+        endDateInput.value = today.toISOString().slice(0, 10);
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes, apple-mobile-web-app-status-bar-style=default">
+  <title>歌词翻译优化</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffffff;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 0.6rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-container {
+      max-width: 550px;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 1.8rem;
+      padding: 1.5rem 1.2rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    h1 { font-size: 1.3rem; font-weight: 600; color: #1a1a1a; text-align: center; }
+    .nav-row { display: flex; justify-content: space-between; align-items: center; }
+
+    /* 歌词卡片 */
+    .lyric-card {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 1.2rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .song-title { font-weight: 700; font-size: 1rem; color: #1a1a1a; }
+    .line-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      position: relative;
+    }
+    .original-line {
+      font-size: 0.9rem;
+      color: #333;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .translation-line {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.6;
+      word-break: break-word;
+      padding-left: 0.5rem;
+      border-left: 3px solid #e0e0e0;
+    }
+    /* 标记样式 */
+    .bad-mark {
+      background: #ffe0e0;
+      text-decoration: line-through;
+      text-decoration-color: #cc0000;
+      text-decoration-thickness: 2px;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+    .good-mark {
+      background: #e0ffe0;
+      border-bottom: 3px solid #2a7a2a;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+    .skip-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 1px solid #ddd;
+      color: #aaa;
+      font-size: 0.55rem;
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.3rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+    .skip-btn.active { background: #f5f5f5; color: #888; border-color: #ccc; }
+
+    /* 分析区域 */
+    .analysis-box {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 0.8rem;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #333;
+      white-space: pre-wrap;
+    }
+
+    /* 按钮 */
+    .btn {
+      background: #1a1a1a; color: white; border: none;
+      padding: 0.4rem 1rem; border-radius: 1.5rem; font-weight: 600;
+      font-size: 0.75rem; cursor: pointer; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: #333; }
+    .btn-outline { background: white; color: #1a1a1a; border: 1px solid #1a1a1a; }
+
+    /* 设置面板 */
+    .settings-panel { display: none; flex-direction: column; gap: 0.5rem; background: #f9f9f9; padding: 0.8rem; border-radius: 1rem; }
+    .settings-panel input { padding: 0.5rem 0.8rem; border: 1px solid #ccc; border-radius: 0.8rem; font-size: 0.8rem; outline: none; }
+
+    /* 总库 */
+    .library-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; max-height: 400px; overflow-y: auto; }
+    .lib-card {
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 0.8rem;
+      padding: 0.5rem; font-size: 0.7rem; line-height: 1.4;
+      cursor: pointer; transition: 0.1s;
+    }
+    .lib-card:active { background: #f0f0f0; }
+    .lib-card .lib-title { font-weight: 700; color: #1a1a1a; }
+    .lib-card .lib-artist { color: #888; font-size: 0.65rem; }
+
+    /* 添加弹窗 */
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .dialog {
+      background: white; border-radius: 1.5rem; padding: 1.5rem;
+      width: 90%; max-width: 380px; display: flex; flex-direction: column; gap: 0.8rem;
+    }
+    .dialog input { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 0.8rem; font-size: 0.85rem; outline: none; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="nav-row">
+    <h1>🎵 歌词翻译优化</h1>
+    <div style="display:flex;gap:0.4rem;">
+      <button class="btn-outline btn" id="libraryBtn">📁 曲库</button>
+      <button class="btn-outline btn" id="settingsBtn">⚙️</button>
+    </div>
+  </div>
+
+  <!-- 主视图 -->
+  <div id="mainView">
+    <div class="lyric-card" id="lyricCard"></div>
+    <button class="btn-outline btn" id="analyzeBtn" style="align-self:center;">🔍 分析翻译</button>
+    <div class="analysis-box" id="analysisBox" style="display:none;"></div>
+    <div class="nav-row">
+      <button class="btn-outline btn" id="prevSongBtn">◀ 上一首</button>
+      <span style="font-size:0.75rem;color:#aaa;" id="songIndex"></span>
+      <button class="btn" id="nextSongBtn">下一首 ▶</button>
+    </div>
+  </div>
+
+  <!-- 曲库视图 -->
+  <div id="libraryView" style="display:none; flex-direction:column; gap:0.8rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:600;">📁 曲库</span>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="btn-outline btn" id="addSongBtn">+ 添加歌曲</button>
+        <button class="btn-outline btn" id="backToMainBtn">← 返回</button>
+      </div>
+    </div>
+    <div class="library-grid" id="libraryGrid"></div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div class="settings-panel" id="settingsPanel">
+    <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...)">
+    <button class="btn" id="saveApiKeyBtn">保存Key</button>
+    <button class="btn-outline btn" id="closeSettingsBtn">关闭</button>
+  </div>
+
+  <!-- 添加歌曲弹窗 -->
+  <div class="overlay" id="addSongOverlay" style="display:none;">
+    <div class="dialog">
+      <h3 style="text-align:center;">添加歌曲</h3>
+      <input type="text" id="songUrlInput" placeholder="粘贴歌曲链接（自动提取原文）">
+      <input type="text" id="songTitleInput" placeholder="歌曲名称（可选）">
+      <button class="btn" id="confirmAddBtn">提取原文并添加</button>
+      <button class="btn-outline btn" id="cancelAddBtn">取消</button>
+      <div id="addStatus" style="font-size:0.7rem;color:#888;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ========== 示例曲库 ==========
+    const DEFAULT_SONGS = [
+      {
+        title: "Yesterday (示例)",
+        artist: "The Beatles",
+        lines: [
+          { original: "Yesterday, all my troubles seemed so far away", translation: "昨天，所有烦恼都离我远去" },
+          { original: "Now it looks as though they're here to stay", translation: "如今看来它们似乎在此停留" },
+          { original: "Oh, I believe in yesterday", translation: "哦，我相信昨天" }
+        ]
+      },
+      {
+        title: "Let It Be (示例)",
+        artist: "The Beatles",
+        lines: [
+          { original: "When I find myself in times of trouble", translation: "当我发现自己陷入困境时" },
+          { original: "Mother Mary comes to me", translation: "圣母玛利亚来到我身边" },
+          { original: "Speaking words of wisdom, let it be", translation: "说着智慧的话，顺其自然吧" }
+        ]
+      }
+    ];
+
+    let songs = [];          // 曲库
+    let currentSongIndex = 0;
+    let apiKey = '';
+    let skippedLines = new Set(); // 当前歌曲中标记为“跳过”的行索引
+
+    // DOM
+    const lyricCard = document.getElementById('lyricCard');
+    const analysisBox = document.getElementById('analysisBox');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const prevSongBtn = document.getElementById('prevSongBtn');
+    const nextSongBtn = document.getElementById('nextSongBtn');
+    const songIndexSpan = document.getElementById('songIndex');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const libraryBtn = document.getElementById('libraryBtn');
+    const mainView = document.getElementById('mainView');
+    const libraryView = document.getElementById('libraryView');
+    const libraryGrid = document.getElementById('libraryGrid');
+    const backToMainBtn = document.getElementById('backToMainBtn');
+    const addSongBtn = document.getElementById('addSongBtn');
+    const addSongOverlay = document.getElementById('addSongOverlay');
+    const songUrlInput = document.getElementById('songUrlInput');
+    const songTitleInput = document.getElementById('songTitleInput');
+    const confirmAddBtn = document.getElementById('confirmAddBtn');
+    const cancelAddBtn = document.getElementById('cancelAddBtn');
+    const addStatus = document.getElementById('addStatus');
+
+    // ========== 数据管理 ==========
+    function loadSongs() {
+      const stored = localStorage.getItem('lyric_songs');
+      if (stored) { try { songs = JSON.parse(stored); } catch { songs = []; } }
+      if (songs.length === 0) { songs = [...DEFAULT_SONGS]; saveSongs(); }
+    }
+    function saveSongs() { localStorage.setItem('lyric_songs', JSON.stringify(songs)); }
+    function loadApiKey() { apiKey = localStorage.getItem('deepseek_api_key') || ''; if (apiKey) apiKeyInput.value = apiKey; }
+    function saveApiKey() { const key = apiKeyInput.value.trim(); if (key) { localStorage.setItem('deepseek_api_key', key); apiKey = key; alert('API Key 已保存'); } }
+
+    // ========== 渲染歌词 ==========
+    function renderSong() {
+      if (songs.length === 0) {
+        lyricCard.innerHTML = '<div style="text-align:center;color:#ccc;padding:20px;">曲库为空，请添加歌曲</div>';
+        return;
+      }
+      const song = songs[currentSongIndex];
+      skippedLines = new Set(); // 切歌时重置跳过标记
+      let html = `<div class="song-title">${escHtml(song.title)} · ${escHtml(song.artist || '')}</div>`;
+      song.lines.forEach((line, idx) => {
+        html += `
+          <div class="line-pair" data-line="${idx}">
+            <div class="original-line">${escHtml(line.original)}</div>
+            <div class="translation-line">${escHtml(line.translation)}</div>
+            <button class="skip-btn" data-index="${idx}" title="重复不翻译">⊙</button>
+          </div>
+        `;
+      });
+      lyricCard.innerHTML = html;
+      songIndexSpan.textContent = `${currentSongIndex + 1} / ${songs.length}`;
+
+      // 绑定跳过按钮
+      document.querySelectorAll('.skip-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.index);
+          if (skippedLines.has(idx)) {
+            skippedLines.delete(idx);
+            btn.classList.remove('active');
+          } else {
+            skippedLines.add(idx);
+            btn.classList.add('active');
+          }
+        });
+      });
+    }
+
+    // ========== 分析翻译 ==========
+    async function analyzeTranslation() {
+      if (!apiKey) { alert('请先设置 DeepSeek API Key（点击右上角齿轮）'); return; }
+      const song = songs[currentSongIndex];
+      if (!song) return;
+
+      analysisBox.style.display = 'block';
+      analysisBox.textContent = '⏳ 分析中...';
+
+      // 构建请求：逐行分析，跳过已标记的行
+      const linesToAnalyze = song.lines
+        .map((line, idx) => ({ ...line, idx }))
+        .filter(l => !skippedLines.has(l.idx));
+
+      if (linesToAnalyze.length === 0) {
+        analysisBox.textContent = '当前歌曲所有行都已被标记为跳过。';
+        return;
+      }
+
+      const linesText = linesToAnalyze.map(l => `行${l.idx+1} 原文：${l.original}\n翻译：${l.translation}`).join('\n\n');
+      const prompt = `你是一个歌词翻译质量分析助手。请分析以下歌词翻译，找出翻译不好的地方（用红杠标记）和翻译好的地方（用绿色标记）。\n\n对每行，用JSON格式返回：\n{\n  "lineIndex": 行号(从0开始),\n  "badParts": [{"text": "不好的词", "reason": "原因"}],\n  "goodParts": [{"text": "好的词", "reason": "原因"}],\n  "overall": "该行整体评价"\n}\n\n只输出JSON数组，不要其他文字。\n\n${linesText}`;
+
+      try {
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.5,
+            max_tokens: 2000
+          })
+        });
+        if (!resp.ok) throw new Error('请求失败: ' + resp.status);
+        const json = await resp.json();
+        const text = json.choices[0].message.content;
+        const match = text.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error('AI 返回格式错误');
+        const results = JSON.parse(match[0]);
+        renderAnalysis(results);
+      } catch (err) {
+        analysisBox.textContent = '❌ 分析失败：' + err.message;
+      }
+    }
+
+    function renderAnalysis(results) {
+      const song = songs[currentSongIndex];
+      let html = '<strong>📝 翻译分析结果</strong><br><br>';
+      results.forEach(r => {
+        const line = song.lines[r.lineIndex];
+        if (!line) return;
+        html += `<div style="margin-bottom:10px;"><strong>行${r.lineIndex + 1}：</strong>${escHtml(line.original)}<br>`;
+        html += `翻译：${escHtml(line.translation)}<br>`;
+
+        // 不好的部分（红杠划掉 + 分析）
+        if (r.badParts && r.badParts.length > 0) {
+          r.badParts.forEach(bp => {
+            html += `<span style="color:#cc0000;">❌ <span style="text-decoration:line-through;text-decoration-color:#cc0000;text-decoration-thickness:2px;">${escHtml(bp.text)}</span></span> — ${escHtml(bp.reason)}<br>`;
+          });
+        }
+        // 好的部分（绿色下划线 + 分析）
+        if (r.goodParts && r.goodParts.length > 0) {
+          r.goodParts.forEach(gp => {
+            html += `<span style="color:#2a7a2a;">✅ <span style="border-bottom:3px solid #2a7a2a;">${escHtml(gp.text)}</span></span> — ${escHtml(gp.reason)}<br>`;
+          });
+        }
+        html += `<span style="color:#888;">整体：${escHtml(r.overall)}</span></div>`;
+      });
+      analysisBox.innerHTML = html;
+    }
+
+    // ========== 曲库视图 ==========
+    function renderLibrary() {
+      libraryGrid.innerHTML = '';
+      if (songs.length === 0) { libraryGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:20px;">曲库为空</div>'; }
+      songs.forEach((song, idx) => {
+        const card = document.createElement('div');
+        card.className = 'lib-card';
+        card.innerHTML = `<div class="lib-title">${escHtml(song.title)}</div><div class="lib-artist">${escHtml(song.artist || '')}</div>`;
+        card.addEventListener('click', () => {
+          currentSongIndex = idx;
+          renderSong();
+          libraryView.style.display = 'none';
+          mainView.style.display = 'flex';
+          analysisBox.style.display = 'none';
+        });
+        libraryGrid.appendChild(card);
+      });
+    }
+
+    async function addSongFromUrl() {
+      const url = songUrlInput.value.trim();
+      const title = songTitleInput.value.trim();
+      if (!url) { addStatus.textContent = '请输入链接'; return; }
+      addStatus.textContent = '⏳ 正在提取原文...';
+
+      try {
+        // 尝试从链接抓取歌词文本（简单处理：直接取页面文本，实际可能需要更智能的解析）
+        const resp = await fetch(url, { mode: 'cors' });
+        if (!resp.ok) throw new Error('无法访问链接: ' + resp.status);
+        const html = await resp.text();
+        // 简单提取文本（去掉标签）
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const text = tmp.textContent || '';
+        // 尝试按换行拆分，取非空行作为歌词行
+        const lines = text.split('\n').filter(l => l.trim().length > 0).slice(0, 30);
+        if (lines.length === 0) throw new Error('未提取到有效内容');
+
+        const newSong = {
+          title: title || '未命名歌曲',
+          artist: '',
+          lines: lines.map(l => ({ original: l.trim(), translation: '' }))
+        };
+        songs.push(newSong);
+        saveSongs();
+        renderLibrary();
+        addSongOverlay.style.display = 'none';
+        songUrlInput.value = '';
+        songTitleInput.value = '';
+        addStatus.textContent = '';
+        alert('已添加 ' + lines.length + ' 行歌词');
+      } catch (err) {
+        addStatus.textContent = '❌ ' + err.message;
+      }
+    }
+
+    // ========== 事件 ==========
+    prevSongBtn.addEventListener('click', () => {
+      if (songs.length === 0) return;
+      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+      renderSong();
+      analysisBox.style.display = 'none';
+    });
+    nextSongBtn.addEventListener('click', () => {
+      if (songs.length === 0) return;
+      currentSongIndex = (currentSongIndex + 1) % songs.length;
+      renderSong();
+      analysisBox.style.display = 'none';
+    });
+    analyzeBtn.addEventListener('click', analyzeTranslation);
+    settingsBtn.addEventListener('click', () => { settingsPanel.style.display = settingsPanel.style.display === 'flex' ? 'none' : 'flex'; });
+    saveApiKeyBtn.addEventListener('click', saveApiKey);
+    closeSettingsBtn.addEventListener('click', () => { settingsPanel.style.display = 'none'; });
+    libraryBtn.addEventListener('click', () => {
+      mainView.style.display = 'none';
+      libraryView.style.display = 'flex';
+      renderLibrary();
+    });
+    backToMainBtn.addEventListener('click', () => {
+      libraryView.style.display = 'none';
+      mainView.style.display = 'flex';
+      analysisBox.style.display = 'none';
+    });
+    addSongBtn.addEventListener('click', () => { addSongOverlay.style.display = 'flex'; });
+    cancelAddBtn.addEventListener('click', () => { addSongOverlay.style.display = 'none'; });
+    confirmAddBtn.addEventListener('click', addSongFromUrl);
+
+    // ========== 初始化 ==========
+    loadApiKey();
+    loadSongs();
+    renderSong();
+    songIndexSpan.textContent = songs.length > 0 ? `1 / ${songs.length}` : '0 / 0';
+  })();
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

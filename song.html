@@ -6,62 +6,22 @@
   <title>英文歌词翻译</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #ffffff;
-      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-      padding: 0.4rem;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-    }
-    .app-container {
-      max-width: 520px; width: 100%;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 1.2rem;
-      padding: 1rem 0.8rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 0.8rem;
-    }
+    body { background: #ffffff; font-family: system-ui, sans-serif; padding: 0.4rem; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+    .app-container { max-width: 520px; width: 100%; background: #fff; border: 1px solid #ddd; border-radius: 1.2rem; padding: 1rem 0.8rem; box-shadow: 0 2px 10px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 0.8rem; }
     .header { display: flex; justify-content: space-between; align-items: center; }
     .title { font-size: 1.2rem; font-weight: 600; color: #1a1a1a; }
     .nav-btns { display: flex; gap: 0.4rem; }
-    .btn {
-      background: #1a1a1a; color: #fff; border: none;
-      padding: 0.4rem 0.9rem; border-radius: 1.4rem;
-      font-size: 0.8rem; font-weight: 600; cursor: pointer;
-    }
+    .btn { background: #1a1a1a; color: #fff; border: none; padding: 0.4rem 0.9rem; border-radius: 1.4rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
     .btn-outline { background: #fff; color: #1a1a1a; border: 1px solid #aaa; }
     .btn:active { opacity: 0.8; }
     .song-info { font-size: 0.9rem; color: #555; display: flex; justify-content: space-between; }
-    .line-item {
-      border-bottom: 1px solid #f0f0f0; padding: 0.5rem 0;
-      display: flex; flex-direction: column; gap: 0.3rem;
-      position: relative;
-    }
+    .line-item { border-bottom: 1px solid #f0f0f0; padding: 0.5rem 0; display: flex; flex-direction: column; gap: 0.3rem; position: relative; }
     .original-text { font-size: 0.9rem; color: #1a1a1a; font-weight: 500; line-height: 1.5; word-break: break-word; }
-    .skip-btn {
-      position: absolute; top: 0.2rem; right: 0;
-      background: transparent; border: 1px solid #ccc;
-      border-radius: 0.3rem; font-size: 0.6rem;
-      padding: 0.1rem 0.4rem; color: #999; cursor: pointer;
-    }
+    .skip-btn { position: absolute; top: 0.2rem; right: 0; background: transparent; border: 1px solid #ccc; border-radius: 0.3rem; font-size: 0.6rem; padding: 0.1rem 0.4rem; color: #999; cursor: pointer; }
     .skip-btn.skipped { background: #f0f0f0; color: #555; border-color: #aaa; }
-    .translation-input {
-      width: 100%; border: 1px solid #ddd; border-radius: 0.5rem;
-      padding: 0.4rem 0.6rem; font-size: 0.8rem; line-height: 1.4;
-      resize: vertical; font-family: inherit;
-    }
+    .translation-input { width: 100%; border: 1px solid #ddd; border-radius: 0.5rem; padding: 0.4rem 0.6rem; font-size: 0.8rem; line-height: 1.4; resize: vertical; font-family: inherit; }
     .tool-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .analysis-box {
-      background: #f9f9f9; border: 1px solid #eee;
-      border-radius: 0.8rem; padding: 0.6rem; font-size: 0.8rem;
-      line-height: 1.6; white-space: pre-wrap; color: #333;
-      max-height: 300px; overflow-y: auto;
-    }
+    .analysis-box { background: #f9f9f9; border: 1px solid #eee; border-radius: 0.8rem; padding: 0.6rem; font-size: 0.8rem; line-height: 1.6; white-space: pre-wrap; color: #333; max-height: 300px; overflow-y: auto; }
     .api-row { display: flex; gap: 0.3rem; align-items: center; }
     .api-row input { flex: 1; border: 1px solid #ccc; border-radius: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.7rem; }
     .footer { font-size: 0.65rem; color: #aaa; text-align: center; }
@@ -84,709 +44,37 @@
   <div class="tool-row">
     <button class="btn btn-outline" id="exportBtn">导出当前翻译</button>
     <button class="btn" id="analyzeBtn">API分析</button>
+    <button class="btn btn-outline" id="generateBtn" style="display:none;">补充歌曲至100首</button>
   </div>
   <div class="analysis-box" id="analysisBox" style="display:none;"></div>
   <div class="api-row">
     <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key">
     <button class="btn" id="saveApiKeyBtn" style="padding:0.2rem 0.6rem; font-size:0.7rem;">保存</button>
   </div>
-  <div class="footer">进度: <span id="progress"></span></div>
+  <div class="footer">进度: <span id="progress"></span> | 总歌数: <span id="totalCount"></span></div>
 </div>
 
 <script>
   (function() {
-    // ========== 100首内置歌词 ==========
-    const SONGS = [
-      {
-        title: "Yesterday", artist: "The Beatles",
-        lyrics: [
-          "Yesterday, all my troubles seemed so far away",
-          "Now it looks as though they're here to stay",
-          "Oh, I believe in yesterday",
-          "Suddenly, I'm not half the man I used to be",
-          "There's a shadow hanging over me",
-          "Oh, yesterday came suddenly",
-          "Why she had to go I don't know she wouldn't say",
-          "I said something wrong, now I long for yesterday",
-          "Yesterday, love was such an easy game to play",
-          "Now I need a place to hide away",
-          "Oh, I believe in yesterday"
-        ]
-      },
-      {
-        title: "Let It Be", artist: "The Beatles",
-        lyrics: [
-          "When I find myself in times of trouble",
-          "Mother Mary comes to me",
-          "Speaking words of wisdom, let it be",
-          "And in my hour of darkness",
-          "She is standing right in front of me",
-          "Speaking words of wisdom, let it be",
-          "Let it be, let it be, let it be, let it be",
-          "Whisper words of wisdom, let it be",
-          "And when the broken-hearted people",
-          "Living in the world agree",
-          "There will be an answer, let it be"
-        ]
-      },
-      {
-        title: "Hey Jude", artist: "The Beatles",
-        lyrics: [
-          "Hey Jude, don't make it bad",
-          "Take a sad song and make it better",
-          "Remember to let her into your heart",
-          "Then you can start to make it better",
-          "Hey Jude, don't be afraid",
-          "You were made to go out and get her",
-          "The minute you let her under your skin",
-          "Then you begin to make it better",
-          "And anytime you feel the pain, hey Jude, refrain",
-          "Don't carry the world upon your shoulders"
-        ]
-      },
-      {
-        title: "Imagine", artist: "John Lennon",
-        lyrics: [
-          "Imagine there's no heaven",
-          "It's easy if you try",
-          "No hell below us",
-          "Above us only sky",
-          "Imagine all the people",
-          "Living for today",
-          "Imagine there's no countries",
-          "It isn't hard to do",
-          "Nothing to kill or die for",
-          "And no religion too",
-          "Imagine all the people",
-          "Living life in peace"
-        ]
-      },
-      {
-        title: "Bohemian Rhapsody", artist: "Queen",
-        lyrics: [
-          "Is this the real life? Is this just fantasy?",
-          "Caught in a landslide, no escape from reality",
-          "Open your eyes, look up to the skies and see",
-          "I'm just a poor boy, I need no sympathy",
-          "Because I'm easy come, easy go, little high, little low",
-          "Any way the wind blows doesn't really matter to me",
-          "Mama, just killed a man",
-          "Put a gun against his head, pulled my trigger, now he's dead",
-          "Mama, life had just begun",
-          "But now I've gone and thrown it all away"
-        ]
-      },
-      {
-        title: "Hotel California", artist: "Eagles",
-        lyrics: [
-          "On a dark desert highway, cool wind in my hair",
-          "Warm smell of colitas, rising up through the air",
-          "Up ahead in the distance, I saw a shimmering light",
-          "My head grew heavy and my sight grew dim",
-          "I had to stop for the night",
-          "There she stood in the doorway",
-          "I heard the mission bell",
-          "And I was thinking to myself",
-          "This could be Heaven or this could be Hell",
-          "Then she lit up a candle and she showed me the way"
-        ]
-      },
-      {
-        title: "Hallelujah", artist: "Leonard Cohen",
-        lyrics: [
-          "Now I've heard there was a secret chord",
-          "That David played, and it pleased the Lord",
-          "But you don't really care for music, do you?",
-          "It goes like this, the fourth, the fifth",
-          "The minor fall, the major lift",
-          "The baffled king composing Hallelujah",
-          "Hallelujah, Hallelujah, Hallelujah, Hallelujah",
-          "Your faith was strong but you needed proof",
-          "You saw her bathing on the roof",
-          "Her beauty and the moonlight overthrew you"
-        ]
-      },
-      {
-        title: "Wonderwall", artist: "Oasis",
-        lyrics: [
-          "Today is gonna be the day",
-          "That they're gonna throw it back to you",
-          "By now you should've somehow",
-          "Realized what you gotta do",
-          "I don't believe that anybody",
-          "Feels the way I do about you now",
-          "Backbeat, the word was on the street",
-          "That the fire in your heart is out",
-          "I'm sure you've heard it all before",
-          "But you never really had a doubt"
-        ]
-      },
-      {
-        title: "My Heart Will Go On", artist: "Celine Dion",
-        lyrics: [
-          "Every night in my dreams",
-          "I see you, I feel you",
-          "That is how I know you go on",
-          "Far across the distance",
-          "And spaces between us",
-          "You have come to show you go on",
-          "Near, far, wherever you are",
-          "I believe that the heart does go on",
-          "Once more you open the door",
-          "And you're here in my heart",
-          "And my heart will go on and on"
-        ]
-      },
-      {
-        title: "Shape of You", artist: "Ed Sheeran",
-        lyrics: [
-          "The club isn't the best place to find a lover",
-          "So the bar is where I go",
-          "Me and my friends at the table doing shots",
-          "Drinking fast and then we talk slow",
-          "Come over and start up a conversation with just me",
-          "And trust me I'll give it a chance now",
-          "Take my hand, stop, put Van the Man on the jukebox",
-          "And then we start to dance, and now I'm singing like",
-          "Girl, you know I want your love",
-          "Your love was handmade for somebody like me"
-        ]
-      },
-      {
-        title: "Perfect", artist: "Ed Sheeran",
-        lyrics: [
-          "I found a love for me",
-          "Darling, just dive right in and follow my lead",
-          "Well, I found a girl, beautiful and sweet",
-          "I never knew you were the someone waiting for me",
-          "Cause we were just kids when we fell in love",
-          "Not knowing what it was",
-          "I will not give you up this time",
-          "Darling, just kiss me slow, your heart is all I own",
-          "And in your eyes, you're holding mine"
-        ]
-      },
-      {
-        title: "Rolling in the Deep", artist: "Adele",
-        lyrics: [
-          "There's a fire starting in my heart",
-          "Reaching a fever pitch and it's bringing me out the dark",
-          "Finally, I can see you crystal clear",
-          "Go ahead and sell me out and I'll lay your ship bare",
-          "See how I'll leave with every piece of you",
-          "Don't underestimate the things that I will do",
-          "There's a fire starting in my heart",
-          "Reaching a fever pitch and it's bringing me out the dark",
-          "The scars of your love remind me of us",
-          "They keep me thinking that we almost had it all"
-        ]
-      },
-      {
-        title: "Someone Like You", artist: "Adele",
-        lyrics: [
-          "I heard that you're settled down",
-          "That you found a girl and you're married now",
-          "I heard that your dreams came true",
-          "Guess she gave you things I didn't give to you",
-          "Never mind, I'll find someone like you",
-          "I wish nothing but the best for you two",
-          "Don't forget me, I beg",
-          "I remember you said",
-          "Sometimes it lasts in love, but sometimes it hurts instead"
-        ]
-      },
-      {
-        title: "Hello", artist: "Adele",
-        lyrics: [
-          "Hello, it's me",
-          "I was wondering if after all these years you'd like to meet",
-          "To go over everything",
-          "They say that time's supposed to heal ya",
-          "But I ain't done much healing",
-          "Hello, can you hear me?",
-          "I'm in California dreaming about who we used to be",
-          "When we were younger and free",
-          "I've forgotten how it felt before the world fell at our feet"
-        ]
-      },
-      {
-        title: "Billie Jean", artist: "Michael Jackson",
-        lyrics: [
-          "She was more like a beauty queen from a movie scene",
-          "I said don't mind, but what do you mean, I am the one",
-          "Who will dance on the floor in the round",
-          "She said I am the one, who will dance on the floor in the round",
-          "Billie Jean is not my lover",
-          "She's just a girl who claims that I am the one",
-          "But the kid is not my son",
-          "She says I am the one, but the kid is not my son"
-        ]
-      },
-      {
-        title: "Beat It", artist: "Michael Jackson",
-        lyrics: [
-          "They told him don't you ever come around here",
-          "Don't wanna see your face, you better disappear",
-          "The fire's in their eyes and their words are really clear",
-          "So beat it, just beat it",
-          "You better run, you better do what you can",
-          "Don't wanna see no blood, don't be a macho man",
-          "You wanna be tough, better do what you can",
-          "So beat it, but you wanna be bad"
-        ]
-      },
-      {
-        title: "Thriller", artist: "Michael Jackson",
-        lyrics: [
-          "It's close to midnight and something evil's lurking in the dark",
-          "Under the moonlight you see a sight that almost stops your heart",
-          "You try to scream but terror takes the sound before you make it",
-          "You start to freeze as horror looks you right between the eyes",
-          "You're paralyzed",
-          "Cause this is thriller, thriller night",
-          "And no one's gonna save you from the beast about to strike",
-          "You know it's thriller, thriller night",
-          "You're fighting for your life inside a killer, thriller tonight"
-        ]
-      },
-      {
-        title: "Smells Like Teen Spirit", artist: "Nirvana",
-        lyrics: [
-          "Load up on guns, bring your friends",
-          "It's fun to lose and to pretend",
-          "She's over bored and self assured",
-          "Oh no, I know a dirty word",
-          "Hello, hello, hello, how low?",
-          "With the lights out, it's less dangerous",
-          "Here we are now, entertain us",
-          "I feel stupid and contagious",
-          "Here we are now, entertain us"
-        ]
-      },
-      {
-        title: "Come As You Are", artist: "Nirvana",
-        lyrics: [
-          "Come as you are, as you were",
-          "As I want you to be",
-          "As a friend, as a friend",
-          "As an old enemy",
-          "Take your time, hurry up",
-          "The choice is yours, don't be late",
-          "Take a rest as a friend",
-          "As an old memory",
-          "And I swear that I don't have a gun"
-        ]
-      },
-      {
-        title: "Sweet Child O' Mine", artist: "Guns N' Roses",
-        lyrics: [
-          "She's got a smile that it seems to me",
-          "Reminds me of childhood memories",
-          "Where everything was as fresh as the bright blue sky",
-          "Now and then when I see her face",
-          "She takes me away to that special place",
-          "And if I stared too long",
-          "I'd probably break down and cry",
-          "Whoa, sweet child o' mine",
-          "Whoa, sweet love of mine"
-        ]
-      },
-      {
-        title: "November Rain", artist: "Guns N' Roses",
-        lyrics: [
-          "When I look into your eyes",
-          "I can see a love restrained",
-          "But darling when I hold you",
-          "Don't you know I feel the same",
-          "Cause nothing lasts forever",
-          "And we both know hearts can change",
-          "And it's hard to hold a candle",
-          "In the cold November rain",
-          "So never mind the darkness",
-          "We still can find a way"
-        ]
-      },
-      {
-        title: "Stairway to Heaven", artist: "Led Zeppelin",
-        lyrics: [
-          "There's a lady who's sure all that glitters is gold",
-          "And she's buying a stairway to heaven",
-          "When she gets there she knows, if the stores are all closed",
-          "With a word she can get what she came for",
-          "There's a sign on the wall but she wants to be sure",
-          "Cause you know sometimes words have two meanings",
-          "In a tree by the brook, there's a songbird who sings",
-          "Sometimes all of our thoughts are misgiven"
-        ]
-      },
-      {
-        title: "Back in Black", artist: "AC/DC",
-        lyrics: [
-          "Back in black, I hit the sack",
-          "I've been too long, I'm glad to be back",
-          "Yes, I'm let loose from the noose",
-          "That's kept me hanging about",
-          "I've been looking at the sky cause it's getting me high",
-          "Forget the hearse cause I never die",
-          "I got nine lives, cat's eyes",
-          "Abusing every one of them and running wild"
-        ]
-      },
-      {
-        title: "Highway to Hell", artist: "AC/DC",
-        lyrics: [
-          "Living easy, living free",
-          "Season ticket on a one-way ride",
-          "Asking nothing, leave me be",
-          "Taking everything in my stride",
-          "Don't need reason, don't need rhyme",
-          "Ain't nothing I would rather do",
-          "Going down, party time",
-          "My friends are gonna be there too",
-          "I'm on the highway to hell"
-        ]
-      },
-      {
-        title: "Livin' on a Prayer", artist: "Bon Jovi",
-        lyrics: [
-          "Tommy used to work on the docks",
-          "Union's been on strike, he's down on his luck",
-          "It's tough, so tough",
-          "Gina works the diner all day",
-          "Working for her man, she brings home her pay",
-          "For love, for love",
-          "She says we've got to hold on to what we've got",
-          "It doesn't make a difference if we make it or not",
-          "We've got each other and that's a lot",
-          "For love, we'll give it a shot"
-        ]
-      },
-      {
-        title: "It's My Life", artist: "Bon Jovi",
-        lyrics: [
-          "This ain't a song for the broken-hearted",
-          "No silent prayer for the faith-departed",
-          "I ain't gonna be just a face in the crowd",
-          "You're gonna hear my voice when I shout it out loud",
-          "It's my life, it's now or never",
-          "I ain't gonna live forever",
-          "I just want to live while I'm alive",
-          "It's my life, my heart is like an open highway",
-          "Like Frankie said I did it my way"
-        ]
-      },
-      {
-        title: "I Will Always Love You", artist: "Whitney Houston",
-        lyrics: [
-          "If I should stay",
-          "I would only be in your way",
-          "So I'll go, but I know",
-          "I'll think of you every step of the way",
-          "And I will always love you",
-          "I will always love you",
-          "You, my darling you",
-          "Bittersweet memories",
-          "That is all I'm taking with me",
-          "So goodbye, please don't cry"
-        ]
-      },
-      {
-        title: "Careless Whisper", artist: "George Michael",
-        lyrics: [
-          "I feel so unsure",
-          "As I take your hand and lead you to the dance floor",
-          "As the music dies, something in your eyes",
-          "Calls to mind a silver screen and all its sad goodbyes",
-          "I'm never gonna dance again",
-          "Guilty feet have got no rhythm",
-          "Though it's easy to pretend",
-          "I know you're not a fool",
-          "Should've known better than to cheat a friend"
-        ]
-      },
-      {
-        title: "Last Christmas", artist: "Wham!",
-        lyrics: [
-          "Last Christmas I gave you my heart",
-          "But the very next day you gave it away",
-          "This year, to save me from tears",
-          "I'll give it to someone special",
-          "Once bitten and twice shy",
-          "I keep my distance but you still catch my eye",
-          "Tell me baby, do you recognize me?",
-          "Well, it's been a year, it doesn't surprise me"
-        ]
-      },
-      {
-        title: "Take On Me", artist: "a-ha",
-        lyrics: [
-          "Talking away",
-          "I don't know what I'm to say",
-          "I'll say it anyway",
-          "Today's another day to find you",
-          "Shying away",
-          "I'll be coming for your love, okay?",
-          "Take on me, take me on",
-          "I'll be gone in a day or two",
-          "So needless to say",
-          "I'm odds and ends, but I'll be stumbling away"
-        ]
-      },
-      {
-        title: "Dancing Queen", artist: "ABBA",
-        lyrics: [
-          "You can dance, you can jive",
-          "Having the time of your life",
-          "See that girl, watch that scene",
-          "Digging the Dancing Queen",
-          "Friday night and the lights are low",
-          "Looking out for the place to go",
-          "Where they play the right music, getting in the swing",
-          "You come in to look for a king",
-          "Anybody could be that guy",
-          "Night is young and the music's high"
-        ]
-      },
-      {
-        title: "Mamma Mia", artist: "ABBA",
-        lyrics: [
-          "I've been cheated by you since I don't know when",
-          "So I made up my mind, it must come to an end",
-          "Look at me now, will I ever learn?",
-          "I don't know how, but I suddenly lose control",
-          "There's a fire within my soul",
-          "Just one look and I can hear a bell ring",
-          "One more look and I forget everything",
-          "Mamma mia, here I go again",
-          "My my, how can I resist you?"
-        ]
-      },
-      {
-        title: "Waterloo", artist: "ABBA",
-        lyrics: [
-          "My my, at Waterloo Napoleon did surrender",
-          "Oh yeah, and I have met my destiny in quite a similar way",
-          "The history book on the shelf",
-          "Is always repeating itself",
-          "Waterloo, I was defeated, you won the war",
-          "Waterloo, promise to love you for ever more",
-          "Waterloo, couldn't escape if I wanted to",
-          "Waterloo, knowing my fate is to be with you"
-        ]
-      },
-      {
-        title: "Fernando", artist: "ABBA",
-        lyrics: [
-          "Can you hear the drums Fernando?",
-          "I remember long ago another starry night like this",
-          "In the firelight Fernando",
-          "You were humming to yourself and softly strumming your guitar",
-          "I could hear the distant drums",
-          "And sounds of bugle calls were coming from afar",
-          "There was something in the air that night",
-          "The stars were bright, Fernando"
-        ]
-      },
-      {
-        title: "Chiquitita", artist: "ABBA",
-        lyrics: [
-          "Chiquitita, tell me what's wrong",
-          "You're enchained by your own sorrow",
-          "In your eyes there is no hope for tomorrow",
-          "How I hate to see you like this",
-          "There is no way you can deny it",
-          "I can see that you're oh so sad, so quiet",
-          "Chiquitita, tell me the truth",
-          "I'm a shoulder you can cry on",
-          "Your best friend, I'm the one you must rely on"
-        ]
-      },
-      {
-        title: "The Winner Takes It All", artist: "ABBA",
-        lyrics: [
-          "I don't wanna talk",
-          "About things we've gone through",
-          "Though it's hurting me",
-          "Now it's history",
-          "I've played all my cards",
-          "And that's what you've done too",
-          "Nothing more to say",
-          "No more ace to play",
-          "The winner takes it all",
-          "The loser standing small",
-          "Beside the victory",
-          "That's her destiny"
-        ]
-      },
-      {
-        title: "I Have a Dream", artist: "ABBA",
-        lyrics: [
-          "I have a dream, a song to sing",
-          "To help me cope with anything",
-          "If you see the wonder of a fairy tale",
-          "You can take the future even if you fail",
-          "I believe in angels",
-          "Something good in everything I see",
-          "I believe in angels",
-          "When I know the time is right for me",
-          "I'll cross the stream, I have a dream"
-        ]
-      },
-      {
-        title: "Thank You for the Music", artist: "ABBA",
-        lyrics: [
-          "I'm nothing special, in fact I'm a bit of a bore",
-          "If I tell a joke, you've probably heard it before",
-          "But I have a talent, a wonderful thing",
-          "Cause everyone listens when I start to sing",
-          "I'm so grateful and proud",
-          "All I want is to sing it out loud",
-          "So I say thank you for the music",
-          "The songs I'm singing",
-          "Thanks for all the joy they're bringing"
-        ]
-      },
-      {
-        title: "Voulez-Vous", artist: "ABBA",
-        lyrics: [
-          "People everywhere",
-          "A sense of expectation hanging in the air",
-          "Giving out a spark",
-          "Across the room your eyes are glowing in the dark",
-          "And here we go again, we know the start, we know the end",
-          "Masters of the scene",
-          "We've done it all before and now we're back to get some more",
-          "You know what I mean",
-          "Voulez-vous, take it now or leave it"
-        ]
-      },
-      {
-        title: "Gimme! Gimme! Gimme!", artist: "ABBA",
-        lyrics: [
-          "Half past twelve",
-          "And I'm watching the late show in my flat all alone",
-          "How I hate to spend the evening on my own",
-          "Autumn winds blowing outside my window as I look around the room",
-          "And it makes me so depressed to see the gloom",
-          "There's not a soul out there",
-          "No one to hear my prayer",
-          "Gimme gimme gimme a man after midnight",
-          "Won't somebody help me chase the shadows away"
-        ]
-      },
-      {
-        title: "S.O.S.", artist: "ABBA",
-        lyrics: [
-          "Where are those happy days, they seem so hard to find",
-          "I tried to reach for you, but you have closed your mind",
-          "Whatever happened to our love?",
-          "I wish I understood",
-          "It used to be so nice, it used to be so good",
-          "So when you're near me, darling can't you hear me",
-          "S.O.S.",
-          "The love you gave me, nothing else can save me",
-          "S.O.S."
-        ]
-      },
-      {
-        title: "Money Money Money", artist: "ABBA",
-        lyrics: [
-          "I work all night, I work all day",
-          "To pay the bills I have to pay",
-          "Ain't it sad",
-          "And still there never seems to be a single penny left for me",
-          "That's too bad",
-          "In my dreams I have a plan",
-          "If I got me a wealthy man",
-          "I wouldn't have to work at all",
-          "I'd fool around and have a ball",
-          "Money money money must be funny",
-          "In the rich man's world"
-        ]
-      },
-      {
-        title: "Knowing Me Knowing You", artist: "ABBA",
-        lyrics: [
-          "No more carefree laughter",
-          "Silence ever after",
-          "Walking through an empty house",
-          "Tears in my eyes",
-          "Here is where the story ends",
-          "This is goodbye",
-          "Knowing me, knowing you",
-          "There is nothing we can do",
-          "Knowing me, knowing you",
-          "We just have to face it, this time we're through"
-        ]
-      },
-      {
-        title: "Lay All Your Love on Me", artist: "ABBA",
-        lyrics: [
-          "I wasn't jealous before we met",
-          "Now every woman I see is a potential threat",
-          "And I'm possessive, it isn't nice",
-          "You've heard me saying that smoking was my only vice",
-          "But now it isn't true",
-          "Now everything is new",
-          "And all I've learned has overturned",
-          "I beg of you",
-          "Don't go wasting your emotion",
-          "Lay all your love on me"
-        ]
-      },
-      {
-        title: "One of Us", artist: "ABBA",
-        lyrics: [
-          "They passed me by, all of those great romances",
-          "You were, I felt, robbing me of my rightful chances",
-          "My picture clear, everything seemed so easy",
-          "And so I dealt you the blow",
-          "One of us had to go",
-          "Now it's different, I want you to know",
-          "One of us is crying",
-          "One of us is lying",
-          "In her lonely bed"
-        ]
-      },
-      {
-        title: "Ring Ring", artist: "ABBA",
-        lyrics: [
-          "I was sitting by the phone",
-          "I was waiting all alone",
-          "Baby by myself I sit and wait and wonder about you",
-          "It's a dark and dreary night",
-          "Seems like nothing's going right",
-          "Won't you tell me honey how can I go on here without you?",
-          "Yes I'm down and feeling blue",
-          "And I don't know what to do",
-          "Ring ring, why don't you give me a call?"
-        ]
-      },
-      {
-        title: "I'm Still Alive", artist: "ABBA",
-        lyrics: [
-          "I was a loser in the game of love",
-          "I couldn't win, I was out of luck",
-          "But I'm still alive, I'm still alive",
-          "I've been down and out and I've been kicked around",
-          "But I'm still alive, I'm still alive",
-          "I'm not the man I used to be",
-          "But I'm still alive, I'm still alive",
-          "And I'm here to tell you that I'm still alive"
-        ]
-      }
+    const INITIAL_SONGS = [
+      { title: "Yesterday", artist: "The Beatles", lyrics: ["Yesterday, all my troubles seemed so far away","Now it looks as though they're here to stay","Oh, I believe in yesterday","Suddenly, I'm not half the man I used to be","There's a shadow hanging over me","Oh, yesterday came suddenly","Why she had to go I don't know she wouldn't say","I said something wrong, now I long for yesterday","Yesterday, love was such an easy game to play","Now I need a place to hide away","Oh, I believe in yesterday","Why she had to go I don't know she wouldn't say","I said something wrong, now I long for yesterday","Yesterday, love was such an easy game to play","Now I need a place to hide away","Oh, I believe in yesterday","Mm mm mm mm mm mm mm"] },
+      { title: "Let It Be", artist: "The Beatles", lyrics: ["When I find myself in times of trouble","Mother Mary comes to me","Speaking words of wisdom, let it be","And in my hour of darkness","She is standing right in front of me","Speaking words of wisdom, let it be","Let it be, let it be, let it be, let it be","Whisper words of wisdom, let it be","And when the broken-hearted people","Living in the world agree","There will be an answer, let it be","For though they may be parted","There is still a chance that they will see","There will be an answer, let it be","Let it be, let it be, let it be, let it be","Whisper words of wisdom, let it be","And when the night is cloudy","There is still a light that shines on me","Shine on till tomorrow, let it be","I wake up to the sound of music","Mother Mary comes to me","Speaking words of wisdom, let it be","Let it be, let it be, let it be, let it be","Whisper words of wisdom, let it be"] },
+      { title: "Hey Jude", artist: "The Beatles", lyrics: ["Hey Jude, don't make it bad","Take a sad song and make it better","Remember to let her into your heart","Then you can start to make it better","Hey Jude, don't be afraid","You were made to go out and get her","The minute you let her under your skin","Then you begin to make it better","And anytime you feel the pain, hey Jude, refrain","Don't carry the world upon your shoulders","For well you know that it's a fool who plays it cool","By making his world a little colder","Hey Jude, don't let me down","You have found her, now go and get her","Remember to let her into your heart","Then you can start to make it better","So let it out and let it in, hey Jude, begin","You're waiting for someone to perform with","And don't you know that it's just you, hey Jude, you'll do","The movement you need is on your shoulder","Hey Jude, don't make it bad","Take a sad song and make it better","Remember to let her under your skin","Then you'll begin to make it better","Na na na na na na na na na na na, hey Jude"] },
+      { title: "Imagine", artist: "John Lennon", lyrics: ["Imagine there's no heaven","It's easy if you try","No hell below us","Above us only sky","Imagine all the people","Living for today","Imagine there's no countries","It isn't hard to do","Nothing to kill or die for","And no religion too","Imagine all the people","Living life in peace","You may say I'm a dreamer","But I'm not the only one","I hope someday you'll join us","And the world will be as one","Imagine no possessions","I wonder if you can","No need for greed or hunger","A brotherhood of man","Imagine all the people","Sharing all the world","You may say I'm a dreamer","But I'm not the only one","I hope someday you'll join us","And the world will live as one"] },
+      { title: "Hotel California", artist: "Eagles", lyrics: ["On a dark desert highway, cool wind in my hair","Warm smell of colitas, rising up through the air","Up ahead in the distance, I saw a shimmering light","My head grew heavy and my sight grew dim","I had to stop for the night","There she stood in the doorway","I heard the mission bell","And I was thinking to myself","This could be Heaven or this could be Hell","Then she lit up a candle and she showed me the way","There were voices down the corridor","I thought I heard them say","Welcome to the Hotel California","Such a lovely place, such a lovely face","Plenty of room at the Hotel California","Any time of year, you can find it here","Her mind is Tiffany-twisted, she got the Mercedes bends","She got a lot of pretty, pretty boys she calls friends","How they dance in the courtyard, sweet summer sweat","Some dance to remember, some dance to forget","So I called up the Captain, please bring me my wine","We haven't had that spirit here since nineteen sixty nine","And still those voices are calling from far away","Wake you up in the middle of the night","Just to hear them say","Welcome to the Hotel California","Such a lovely place, such a lovely face","They livin' it up at the Hotel California","What a nice surprise, bring your alibis","Mirrors on the ceiling, the pink champagne on ice","And she said we are all just prisoners here, of our own device","And in the master's chambers, they gathered for the feast","They stab it with their steely knives","But they just can't kill the beast","Last thing I remember, I was running for the door","I had to find the passage back","To the place I was before","Relax said the night man, we are programmed to receive","You can check-out any time you like","But you can never leave"] }
     ];
 
-    // 全局状态
+    const SONG_STORE_KEY = 'lyric_full_songs';
+    const CURRENT_INDEX_KEY = 'lyric_full_index';
+    const TRANSLATION_PREFIX = 'lyric_full_tr_';
+    const SKIP_PREFIX = 'lyric_full_sk_';
+
+    let songs = [];
     let apiKey = '';
     let currentIndex = 0;
     let currentSong = null;
     let skipFlags = {};
     let userTranslations = {};
-
-    const CURRENT_INDEX_KEY = 'lyric_current_index_v2';
-    const TRANSLATION_PREFIX = 'lyric_trans_v2_';
-    const SKIP_PREFIX = 'lyric_skip_v2_';
 
     const songTitleEl = document.getElementById('songTitle');
     const songArtistEl = document.getElementById('songArtist');
@@ -795,20 +83,35 @@
     const nextBtn = document.getElementById('nextBtn');
     const exportBtn = document.getElementById('exportBtn');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const generateBtn = document.getElementById('generateBtn');
     const analysisBox = document.getElementById('analysisBox');
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
     const progressEl = document.getElementById('progress');
+    const totalCountEl = document.getElementById('totalCount');
+
+    function loadSongs() {
+      let stored = localStorage.getItem(SONG_STORE_KEY);
+      if (stored) {
+        try { songs = JSON.parse(stored); } catch(e) { songs = []; }
+      }
+      if (!songs || songs.length === 0) {
+        songs = INITIAL_SONGS.map(s => ({...s}));
+        saveSongs();
+      }
+    }
+
+    function saveSongs() {
+      localStorage.setItem(SONG_STORE_KEY, JSON.stringify(songs));
+    }
 
     function getStorageKey(song, prefix) {
       return prefix + song.title.replace(/[^a-zA-Z0-9]/g, '_');
     }
 
     function loadSongState(song) {
-      const tKey = getStorageKey(song, TRANSLATION_PREFIX);
-      const sKey = getStorageKey(song, SKIP_PREFIX);
-      userTranslations = JSON.parse(localStorage.getItem(tKey) || '{}');
-      skipFlags = JSON.parse(localStorage.getItem(sKey) || '{}');
+      userTranslations = JSON.parse(localStorage.getItem(getStorageKey(song, TRANSLATION_PREFIX)) || '{}');
+      skipFlags = JSON.parse(localStorage.getItem(getStorageKey(song, SKIP_PREFIX)) || '{}');
     }
 
     function saveSongState(song) {
@@ -817,12 +120,11 @@
     }
 
     function renderSong(index) {
-      currentSong = SONGS[index];
+      currentSong = songs[index];
       if (!currentSong) return;
       songTitleEl.textContent = currentSong.title;
       songArtistEl.textContent = currentSong.artist;
       loadSongState(currentSong);
-
       const lines = currentSong.lyrics || [];
       linesContainer.innerHTML = lines.map((line, idx) => {
         const skipped = skipFlags[idx] || false;
@@ -835,7 +137,6 @@
           </div>
         `;
       }).join('');
-
       document.querySelectorAll('.skip-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const idx = parseInt(btn.dataset.index);
@@ -846,13 +147,13 @@
       });
       document.querySelectorAll('.translation-input').forEach(textarea => {
         textarea.addEventListener('input', (e) => {
-          const idx = parseInt(textarea.dataset.index);
-          userTranslations[idx] = textarea.value;
+          userTranslations[parseInt(textarea.dataset.index)] = textarea.value;
           saveSongState(currentSong);
         });
       });
-
-      progressEl.textContent = `${index+1}/${SONGS.length}`;
+      progressEl.textContent = `${index+1}/${songs.length}`;
+      totalCountEl.textContent = songs.length;
+      generateBtn.style.display = songs.length < 100 ? 'inline-block' : 'none';
       analysisBox.style.display = 'none';
       localStorage.setItem(CURRENT_INDEX_KEY, index);
     }
@@ -860,7 +161,7 @@
     function changeSong(delta) {
       let newIndex = currentIndex + delta;
       if (newIndex < 0) newIndex = 0;
-      if (newIndex >= SONGS.length) newIndex = SONGS.length - 1;
+      if (newIndex >= songs.length) newIndex = songs.length - 1;
       if (newIndex !== currentIndex) {
         saveSongState(currentSong);
         currentIndex = newIndex;
@@ -874,24 +175,19 @@
       const lines = currentSong.lyrics || [];
       const nonSkipped = lines.map((line, idx) => ({ line, idx, trans: userTranslations[idx] || '', skipped: skipFlags[idx] }))
                            .filter(item => !item.skipped && item.trans.trim() !== '');
-      if (nonSkipped.length === 0) {
-        analysisBox.style.display = 'block';
-        analysisBox.textContent = '没有可分析的行（请填写翻译）。';
-        return;
-      }
+      if (nonSkipped.length === 0) { analysisBox.style.display = 'block'; analysisBox.textContent = '没有可分析的行。'; return; }
       analysisBox.style.display = 'block';
       analysisBox.textContent = '分析中...';
       const linesData = nonSkipped.map(item => `原文：${item.line}\n翻译：${item.trans}`).join('\n\n');
-      const prompt = `请逐行分析以下英文歌词翻译的质量，指出每行的优点和不足。然后给出整体评价，说明总体好在哪、不好在哪。\n\n${linesData}`;
+      const prompt = `逐行分析以下英文歌词翻译质量，指出每行优缺点，最后给出整体评价。\n\n${linesData}`;
       try {
         const resp = await fetch('https://api.deepseek.com/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.6, max_tokens: 1000 })
         });
-        if (!resp.ok) throw new Error('分析请求失败');
-        const json = await resp.json();
-        analysisBox.textContent = json.choices[0].message.content;
+        if (!resp.ok) throw new Error('请求失败');
+        analysisBox.textContent = (await resp.json()).choices[0].message.content;
       } catch (err) {
         analysisBox.textContent = '分析失败: ' + err.message;
       }
@@ -899,27 +195,55 @@
 
     function exportTranslation() {
       if (!currentSong) return;
-      const lines = currentSong.lyrics || [];
       let exportText = `${currentSong.title} - ${currentSong.artist}\n\n`;
-      lines.forEach((line, idx) => {
+      (currentSong.lyrics || []).forEach((line, idx) => {
         if (skipFlags[idx]) return;
-        const trans = userTranslations[idx] || '';
-        exportText += `原文：${line}\n翻译：${trans}\n\n`;
+        exportText += `原文：${line}\n翻译：${userTranslations[idx] || ''}\n\n`;
       });
       const blob = new Blob([exportText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = URL.createObjectURL(blob);
       a.download = `${currentSong.title}_翻译.txt`;
       a.click();
-      URL.revokeObjectURL(url);
+    }
+
+    async function generateMoreSongs() {
+      if (!apiKey) { alert('需要API Key'); return; }
+      const need = 100 - songs.length;
+      if (need <= 0) return;
+      if (!confirm(`当前${songs.length}首，还需补充${need}首，调用API生成？`)) return;
+      generateBtn.disabled = true;
+      generateBtn.textContent = '生成中...';
+      try {
+        const existingTitles = songs.map(s => s.title).join('|');
+        const prompt = `请提供${need}首经典英文歌曲，每首歌包含完整歌词。以JSON数组返回，每个元素格式：{"title":"歌名","artist":"歌手","lyrics":["句子1","句子2",...]}。不要与以下已有歌曲重复：${existingTitles}。只输出JSON数组。`;
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.8, max_tokens: 4000 })
+        });
+        if (!resp.ok) throw new Error('API请求失败');
+        const json = await resp.json();
+        const text = json.choices[0].message.content;
+        const match = text.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error('格式错误');
+        const newSongs = JSON.parse(match[0]);
+        newSongs.forEach(s => songs.push(s));
+        saveSongs();
+        renderSong(currentIndex);
+      } catch (err) {
+        alert('生成失败: ' + err.message);
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = `补充歌曲至100首`;
+      }
     }
 
     function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function init() {
-      const savedIndex = parseInt(localStorage.getItem(CURRENT_INDEX_KEY));
-      currentIndex = (savedIndex >= 0 && savedIndex < SONGS.length) ? savedIndex : 0;
+      loadSongs();
+      currentIndex = Math.max(0, Math.min(parseInt(localStorage.getItem(CURRENT_INDEX_KEY)) || 0, songs.length - 1));
       renderSong(currentIndex);
       apiKey = localStorage.getItem('deepseek_api_key') || '';
       if (apiKey) apiKeyInput.value = apiKey;
@@ -929,6 +253,7 @@
     nextBtn.addEventListener('click', () => changeSong(1));
     exportBtn.addEventListener('click', exportTranslation);
     analyzeBtn.addEventListener('click', analyzeCurrentSong);
+    generateBtn.addEventListener('click', generateMoreSongs);
     saveApiKeyBtn.addEventListener('click', () => {
       const key = apiKeyInput.value.trim();
       if (key) {

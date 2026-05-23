@@ -2,471 +2,944 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes, apple-mobile-web-app-status-bar-style=default">
-  <title>歌词翻译优化</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+  <title>英文歌词翻译</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #ffffff;
-      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-      padding: 0.6rem;
+      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+      padding: 0.4rem;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       min-height: 100vh;
-      -webkit-tap-highlight-color: transparent;
     }
     .app-container {
-      max-width: 550px;
-      width: 100%;
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 1.8rem;
-      padding: 1.5rem 1.2rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    h1 { font-size: 1.3rem; font-weight: 600; color: #1a1a1a; text-align: center; }
-    .nav-row { display: flex; justify-content: space-between; align-items: center; }
-
-    /* 歌词卡片 */
-    .lyric-card {
-      background: #fafafa;
-      border: 1px solid #e0e0e0;
+      max-width: 520px; width: 100%;
+      background: #fff;
+      border: 1px solid #ddd;
       border-radius: 1.2rem;
-      padding: 1rem;
+      padding: 1rem 0.8rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
       display: flex;
       flex-direction: column;
       gap: 0.8rem;
     }
-    .song-title { font-weight: 700; font-size: 1rem; color: #1a1a1a; }
-    .line-pair {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 0.4rem 0;
-      border-bottom: 1px solid #f0f0f0;
+    .header { display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 1.2rem; font-weight: 600; color: #1a1a1a; }
+    .nav-btns { display: flex; gap: 0.4rem; }
+    .btn {
+      background: #1a1a1a; color: #fff; border: none;
+      padding: 0.4rem 0.9rem; border-radius: 1.4rem;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-outline { background: #fff; color: #1a1a1a; border: 1px solid #aaa; }
+    .btn:active { opacity: 0.8; }
+    .song-info { font-size: 0.9rem; color: #555; display: flex; justify-content: space-between; }
+    .line-item {
+      border-bottom: 1px solid #f0f0f0; padding: 0.5rem 0;
+      display: flex; flex-direction: column; gap: 0.3rem;
       position: relative;
     }
-    .original-line {
-      font-size: 0.9rem;
-      color: #333;
-      line-height: 1.6;
-      word-break: break-word;
-    }
-    .translation-line {
-      font-size: 0.85rem;
-      color: #666;
-      line-height: 1.6;
-      word-break: break-word;
-      padding-left: 0.5rem;
-      border-left: 3px solid #e0e0e0;
-    }
-    /* 标记样式 */
-    .bad-mark {
-      background: #ffe0e0;
-      text-decoration: line-through;
-      text-decoration-color: #cc0000;
-      text-decoration-thickness: 2px;
-      padding: 0 2px;
-      border-radius: 2px;
-    }
-    .good-mark {
-      background: #e0ffe0;
-      border-bottom: 3px solid #2a7a2a;
-      padding: 0 2px;
-      border-radius: 2px;
-    }
+    .original-text { font-size: 0.9rem; color: #1a1a1a; font-weight: 500; line-height: 1.5; word-break: break-word; }
     .skip-btn {
-      position: absolute;
-      right: 4px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: transparent;
-      border: 1px solid #ddd;
-      color: #aaa;
-      font-size: 0.55rem;
-      padding: 0.1rem 0.3rem;
-      border-radius: 0.3rem;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      white-space: nowrap;
+      position: absolute; top: 0.2rem; right: 0;
+      background: transparent; border: 1px solid #ccc;
+      border-radius: 0.3rem; font-size: 0.6rem;
+      padding: 0.1rem 0.4rem; color: #999; cursor: pointer;
     }
-    .skip-btn.active { background: #f5f5f5; color: #888; border-color: #ccc; }
-
-    /* 分析区域 */
+    .skip-btn.skipped { background: #f0f0f0; color: #555; border-color: #aaa; }
+    .translation-input {
+      width: 100%; border: 1px solid #ddd; border-radius: 0.5rem;
+      padding: 0.4rem 0.6rem; font-size: 0.8rem; line-height: 1.4;
+      resize: vertical; font-family: inherit;
+    }
+    .tool-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .analysis-box {
-      background: #f9f9f9;
-      border: 1px solid #e0e0e0;
-      border-radius: 0.8rem;
-      padding: 0.6rem 0.8rem;
-      font-size: 0.8rem;
-      line-height: 1.6;
-      color: #333;
-      white-space: pre-wrap;
+      background: #f9f9f9; border: 1px solid #eee;
+      border-radius: 0.8rem; padding: 0.6rem; font-size: 0.8rem;
+      line-height: 1.6; white-space: pre-wrap; color: #333;
+      max-height: 300px; overflow-y: auto;
     }
-
-    /* 按钮 */
-    .btn {
-      background: #1a1a1a; color: white; border: none;
-      padding: 0.4rem 1rem; border-radius: 1.5rem; font-weight: 600;
-      font-size: 0.75rem; cursor: pointer; white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { background: #333; }
-    .btn-outline { background: white; color: #1a1a1a; border: 1px solid #1a1a1a; }
-
-    /* 设置面板 */
-    .settings-panel { display: none; flex-direction: column; gap: 0.5rem; background: #f9f9f9; padding: 0.8rem; border-radius: 1rem; }
-    .settings-panel input { padding: 0.5rem 0.8rem; border: 1px solid #ccc; border-radius: 0.8rem; font-size: 0.8rem; outline: none; }
-
-    /* 总库 */
-    .library-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; max-height: 400px; overflow-y: auto; }
-    .lib-card {
-      background: #fff; border: 1px solid #e0e0e0; border-radius: 0.8rem;
-      padding: 0.5rem; font-size: 0.7rem; line-height: 1.4;
-      cursor: pointer; transition: 0.1s;
-    }
-    .lib-card:active { background: #f0f0f0; }
-    .lib-card .lib-title { font-weight: 700; color: #1a1a1a; }
-    .lib-card .lib-artist { color: #888; font-size: 0.65rem; }
-
-    /* 添加弹窗 */
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 200;
-      display: flex; justify-content: center; align-items: center;
-    }
-    .dialog {
-      background: white; border-radius: 1.5rem; padding: 1.5rem;
-      width: 90%; max-width: 380px; display: flex; flex-direction: column; gap: 0.8rem;
-    }
-    .dialog input { padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 0.8rem; font-size: 0.85rem; outline: none; }
+    .api-row { display: flex; gap: 0.3rem; align-items: center; }
+    .api-row input { flex: 1; border: 1px solid #ccc; border-radius: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.7rem; }
+    .footer { font-size: 0.65rem; color: #aaa; text-align: center; }
   </style>
 </head>
 <body>
 <div class="app-container">
-  <div class="nav-row">
-    <h1>🎵 歌词翻译优化</h1>
-    <div style="display:flex;gap:0.4rem;">
-      <button class="btn-outline btn" id="libraryBtn">📁 曲库</button>
-      <button class="btn-outline btn" id="settingsBtn">⚙️</button>
+  <div class="header">
+    <span class="title">歌词翻译</span>
+    <div class="nav-btns">
+      <button class="btn btn-outline" id="prevBtn">上一首</button>
+      <button class="btn" id="nextBtn">下一首</button>
     </div>
   </div>
-
-  <!-- 主视图 -->
-  <div id="mainView">
-    <div class="lyric-card" id="lyricCard"></div>
-    <button class="btn-outline btn" id="analyzeBtn" style="align-self:center;">🔍 分析翻译</button>
-    <div class="analysis-box" id="analysisBox" style="display:none;"></div>
-    <div class="nav-row">
-      <button class="btn-outline btn" id="prevSongBtn">◀ 上一首</button>
-      <span style="font-size:0.75rem;color:#aaa;" id="songIndex"></span>
-      <button class="btn" id="nextSongBtn">下一首 ▶</button>
-    </div>
+  <div class="song-info">
+    <span id="songTitle"></span>
+    <span id="songArtist" style="color:#888;"></span>
   </div>
-
-  <!-- 曲库视图 -->
-  <div id="libraryView" style="display:none; flex-direction:column; gap:0.8rem;">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-weight:600;">📁 曲库</span>
-      <div style="display:flex;gap:0.4rem;">
-        <button class="btn-outline btn" id="addSongBtn">+ 添加歌曲</button>
-        <button class="btn-outline btn" id="backToMainBtn">← 返回</button>
-      </div>
-    </div>
-    <div class="library-grid" id="libraryGrid"></div>
+  <div id="linesContainer"></div>
+  <div class="tool-row">
+    <button class="btn btn-outline" id="exportBtn">导出当前翻译</button>
+    <button class="btn" id="analyzeBtn">API分析</button>
   </div>
-
-  <!-- 设置面板 -->
-  <div class="settings-panel" id="settingsPanel">
-    <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...)">
-    <button class="btn" id="saveApiKeyBtn">保存Key</button>
-    <button class="btn-outline btn" id="closeSettingsBtn">关闭</button>
+  <div class="analysis-box" id="analysisBox" style="display:none;"></div>
+  <div class="api-row">
+    <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key">
+    <button class="btn" id="saveApiKeyBtn" style="padding:0.2rem 0.6rem; font-size:0.7rem;">保存</button>
   </div>
-
-  <!-- 添加歌曲弹窗 -->
-  <div class="overlay" id="addSongOverlay" style="display:none;">
-    <div class="dialog">
-      <h3 style="text-align:center;">添加歌曲</h3>
-      <input type="text" id="songUrlInput" placeholder="粘贴歌曲链接（自动提取原文）">
-      <input type="text" id="songTitleInput" placeholder="歌曲名称（可选）">
-      <button class="btn" id="confirmAddBtn">提取原文并添加</button>
-      <button class="btn-outline btn" id="cancelAddBtn">取消</button>
-      <div id="addStatus" style="font-size:0.7rem;color:#888;"></div>
-    </div>
-  </div>
+  <div class="footer">进度: <span id="progress"></span></div>
 </div>
 
 <script>
   (function() {
-    // ========== 示例曲库 ==========
-    const DEFAULT_SONGS = [
+    // ========== 100首内置歌词 ==========
+    const SONGS = [
       {
-        title: "Yesterday (示例)",
-        artist: "The Beatles",
-        lines: [
-          { original: "Yesterday, all my troubles seemed so far away", translation: "昨天，所有烦恼都离我远去" },
-          { original: "Now it looks as though they're here to stay", translation: "如今看来它们似乎在此停留" },
-          { original: "Oh, I believe in yesterday", translation: "哦，我相信昨天" }
+        title: "Yesterday", artist: "The Beatles",
+        lyrics: [
+          "Yesterday, all my troubles seemed so far away",
+          "Now it looks as though they're here to stay",
+          "Oh, I believe in yesterday",
+          "Suddenly, I'm not half the man I used to be",
+          "There's a shadow hanging over me",
+          "Oh, yesterday came suddenly",
+          "Why she had to go I don't know she wouldn't say",
+          "I said something wrong, now I long for yesterday",
+          "Yesterday, love was such an easy game to play",
+          "Now I need a place to hide away",
+          "Oh, I believe in yesterday"
         ]
       },
       {
-        title: "Let It Be (示例)",
-        artist: "The Beatles",
-        lines: [
-          { original: "When I find myself in times of trouble", translation: "当我发现自己陷入困境时" },
-          { original: "Mother Mary comes to me", translation: "圣母玛利亚来到我身边" },
-          { original: "Speaking words of wisdom, let it be", translation: "说着智慧的话，顺其自然吧" }
+        title: "Let It Be", artist: "The Beatles",
+        lyrics: [
+          "When I find myself in times of trouble",
+          "Mother Mary comes to me",
+          "Speaking words of wisdom, let it be",
+          "And in my hour of darkness",
+          "She is standing right in front of me",
+          "Speaking words of wisdom, let it be",
+          "Let it be, let it be, let it be, let it be",
+          "Whisper words of wisdom, let it be",
+          "And when the broken-hearted people",
+          "Living in the world agree",
+          "There will be an answer, let it be"
+        ]
+      },
+      {
+        title: "Hey Jude", artist: "The Beatles",
+        lyrics: [
+          "Hey Jude, don't make it bad",
+          "Take a sad song and make it better",
+          "Remember to let her into your heart",
+          "Then you can start to make it better",
+          "Hey Jude, don't be afraid",
+          "You were made to go out and get her",
+          "The minute you let her under your skin",
+          "Then you begin to make it better",
+          "And anytime you feel the pain, hey Jude, refrain",
+          "Don't carry the world upon your shoulders"
+        ]
+      },
+      {
+        title: "Imagine", artist: "John Lennon",
+        lyrics: [
+          "Imagine there's no heaven",
+          "It's easy if you try",
+          "No hell below us",
+          "Above us only sky",
+          "Imagine all the people",
+          "Living for today",
+          "Imagine there's no countries",
+          "It isn't hard to do",
+          "Nothing to kill or die for",
+          "And no religion too",
+          "Imagine all the people",
+          "Living life in peace"
+        ]
+      },
+      {
+        title: "Bohemian Rhapsody", artist: "Queen",
+        lyrics: [
+          "Is this the real life? Is this just fantasy?",
+          "Caught in a landslide, no escape from reality",
+          "Open your eyes, look up to the skies and see",
+          "I'm just a poor boy, I need no sympathy",
+          "Because I'm easy come, easy go, little high, little low",
+          "Any way the wind blows doesn't really matter to me",
+          "Mama, just killed a man",
+          "Put a gun against his head, pulled my trigger, now he's dead",
+          "Mama, life had just begun",
+          "But now I've gone and thrown it all away"
+        ]
+      },
+      {
+        title: "Hotel California", artist: "Eagles",
+        lyrics: [
+          "On a dark desert highway, cool wind in my hair",
+          "Warm smell of colitas, rising up through the air",
+          "Up ahead in the distance, I saw a shimmering light",
+          "My head grew heavy and my sight grew dim",
+          "I had to stop for the night",
+          "There she stood in the doorway",
+          "I heard the mission bell",
+          "And I was thinking to myself",
+          "This could be Heaven or this could be Hell",
+          "Then she lit up a candle and she showed me the way"
+        ]
+      },
+      {
+        title: "Hallelujah", artist: "Leonard Cohen",
+        lyrics: [
+          "Now I've heard there was a secret chord",
+          "That David played, and it pleased the Lord",
+          "But you don't really care for music, do you?",
+          "It goes like this, the fourth, the fifth",
+          "The minor fall, the major lift",
+          "The baffled king composing Hallelujah",
+          "Hallelujah, Hallelujah, Hallelujah, Hallelujah",
+          "Your faith was strong but you needed proof",
+          "You saw her bathing on the roof",
+          "Her beauty and the moonlight overthrew you"
+        ]
+      },
+      {
+        title: "Wonderwall", artist: "Oasis",
+        lyrics: [
+          "Today is gonna be the day",
+          "That they're gonna throw it back to you",
+          "By now you should've somehow",
+          "Realized what you gotta do",
+          "I don't believe that anybody",
+          "Feels the way I do about you now",
+          "Backbeat, the word was on the street",
+          "That the fire in your heart is out",
+          "I'm sure you've heard it all before",
+          "But you never really had a doubt"
+        ]
+      },
+      {
+        title: "My Heart Will Go On", artist: "Celine Dion",
+        lyrics: [
+          "Every night in my dreams",
+          "I see you, I feel you",
+          "That is how I know you go on",
+          "Far across the distance",
+          "And spaces between us",
+          "You have come to show you go on",
+          "Near, far, wherever you are",
+          "I believe that the heart does go on",
+          "Once more you open the door",
+          "And you're here in my heart",
+          "And my heart will go on and on"
+        ]
+      },
+      {
+        title: "Shape of You", artist: "Ed Sheeran",
+        lyrics: [
+          "The club isn't the best place to find a lover",
+          "So the bar is where I go",
+          "Me and my friends at the table doing shots",
+          "Drinking fast and then we talk slow",
+          "Come over and start up a conversation with just me",
+          "And trust me I'll give it a chance now",
+          "Take my hand, stop, put Van the Man on the jukebox",
+          "And then we start to dance, and now I'm singing like",
+          "Girl, you know I want your love",
+          "Your love was handmade for somebody like me"
+        ]
+      },
+      {
+        title: "Perfect", artist: "Ed Sheeran",
+        lyrics: [
+          "I found a love for me",
+          "Darling, just dive right in and follow my lead",
+          "Well, I found a girl, beautiful and sweet",
+          "I never knew you were the someone waiting for me",
+          "Cause we were just kids when we fell in love",
+          "Not knowing what it was",
+          "I will not give you up this time",
+          "Darling, just kiss me slow, your heart is all I own",
+          "And in your eyes, you're holding mine"
+        ]
+      },
+      {
+        title: "Rolling in the Deep", artist: "Adele",
+        lyrics: [
+          "There's a fire starting in my heart",
+          "Reaching a fever pitch and it's bringing me out the dark",
+          "Finally, I can see you crystal clear",
+          "Go ahead and sell me out and I'll lay your ship bare",
+          "See how I'll leave with every piece of you",
+          "Don't underestimate the things that I will do",
+          "There's a fire starting in my heart",
+          "Reaching a fever pitch and it's bringing me out the dark",
+          "The scars of your love remind me of us",
+          "They keep me thinking that we almost had it all"
+        ]
+      },
+      {
+        title: "Someone Like You", artist: "Adele",
+        lyrics: [
+          "I heard that you're settled down",
+          "That you found a girl and you're married now",
+          "I heard that your dreams came true",
+          "Guess she gave you things I didn't give to you",
+          "Never mind, I'll find someone like you",
+          "I wish nothing but the best for you two",
+          "Don't forget me, I beg",
+          "I remember you said",
+          "Sometimes it lasts in love, but sometimes it hurts instead"
+        ]
+      },
+      {
+        title: "Hello", artist: "Adele",
+        lyrics: [
+          "Hello, it's me",
+          "I was wondering if after all these years you'd like to meet",
+          "To go over everything",
+          "They say that time's supposed to heal ya",
+          "But I ain't done much healing",
+          "Hello, can you hear me?",
+          "I'm in California dreaming about who we used to be",
+          "When we were younger and free",
+          "I've forgotten how it felt before the world fell at our feet"
+        ]
+      },
+      {
+        title: "Billie Jean", artist: "Michael Jackson",
+        lyrics: [
+          "She was more like a beauty queen from a movie scene",
+          "I said don't mind, but what do you mean, I am the one",
+          "Who will dance on the floor in the round",
+          "She said I am the one, who will dance on the floor in the round",
+          "Billie Jean is not my lover",
+          "She's just a girl who claims that I am the one",
+          "But the kid is not my son",
+          "She says I am the one, but the kid is not my son"
+        ]
+      },
+      {
+        title: "Beat It", artist: "Michael Jackson",
+        lyrics: [
+          "They told him don't you ever come around here",
+          "Don't wanna see your face, you better disappear",
+          "The fire's in their eyes and their words are really clear",
+          "So beat it, just beat it",
+          "You better run, you better do what you can",
+          "Don't wanna see no blood, don't be a macho man",
+          "You wanna be tough, better do what you can",
+          "So beat it, but you wanna be bad"
+        ]
+      },
+      {
+        title: "Thriller", artist: "Michael Jackson",
+        lyrics: [
+          "It's close to midnight and something evil's lurking in the dark",
+          "Under the moonlight you see a sight that almost stops your heart",
+          "You try to scream but terror takes the sound before you make it",
+          "You start to freeze as horror looks you right between the eyes",
+          "You're paralyzed",
+          "Cause this is thriller, thriller night",
+          "And no one's gonna save you from the beast about to strike",
+          "You know it's thriller, thriller night",
+          "You're fighting for your life inside a killer, thriller tonight"
+        ]
+      },
+      {
+        title: "Smells Like Teen Spirit", artist: "Nirvana",
+        lyrics: [
+          "Load up on guns, bring your friends",
+          "It's fun to lose and to pretend",
+          "She's over bored and self assured",
+          "Oh no, I know a dirty word",
+          "Hello, hello, hello, how low?",
+          "With the lights out, it's less dangerous",
+          "Here we are now, entertain us",
+          "I feel stupid and contagious",
+          "Here we are now, entertain us"
+        ]
+      },
+      {
+        title: "Come As You Are", artist: "Nirvana",
+        lyrics: [
+          "Come as you are, as you were",
+          "As I want you to be",
+          "As a friend, as a friend",
+          "As an old enemy",
+          "Take your time, hurry up",
+          "The choice is yours, don't be late",
+          "Take a rest as a friend",
+          "As an old memory",
+          "And I swear that I don't have a gun"
+        ]
+      },
+      {
+        title: "Sweet Child O' Mine", artist: "Guns N' Roses",
+        lyrics: [
+          "She's got a smile that it seems to me",
+          "Reminds me of childhood memories",
+          "Where everything was as fresh as the bright blue sky",
+          "Now and then when I see her face",
+          "She takes me away to that special place",
+          "And if I stared too long",
+          "I'd probably break down and cry",
+          "Whoa, sweet child o' mine",
+          "Whoa, sweet love of mine"
+        ]
+      },
+      {
+        title: "November Rain", artist: "Guns N' Roses",
+        lyrics: [
+          "When I look into your eyes",
+          "I can see a love restrained",
+          "But darling when I hold you",
+          "Don't you know I feel the same",
+          "Cause nothing lasts forever",
+          "And we both know hearts can change",
+          "And it's hard to hold a candle",
+          "In the cold November rain",
+          "So never mind the darkness",
+          "We still can find a way"
+        ]
+      },
+      {
+        title: "Stairway to Heaven", artist: "Led Zeppelin",
+        lyrics: [
+          "There's a lady who's sure all that glitters is gold",
+          "And she's buying a stairway to heaven",
+          "When she gets there she knows, if the stores are all closed",
+          "With a word she can get what she came for",
+          "There's a sign on the wall but she wants to be sure",
+          "Cause you know sometimes words have two meanings",
+          "In a tree by the brook, there's a songbird who sings",
+          "Sometimes all of our thoughts are misgiven"
+        ]
+      },
+      {
+        title: "Back in Black", artist: "AC/DC",
+        lyrics: [
+          "Back in black, I hit the sack",
+          "I've been too long, I'm glad to be back",
+          "Yes, I'm let loose from the noose",
+          "That's kept me hanging about",
+          "I've been looking at the sky cause it's getting me high",
+          "Forget the hearse cause I never die",
+          "I got nine lives, cat's eyes",
+          "Abusing every one of them and running wild"
+        ]
+      },
+      {
+        title: "Highway to Hell", artist: "AC/DC",
+        lyrics: [
+          "Living easy, living free",
+          "Season ticket on a one-way ride",
+          "Asking nothing, leave me be",
+          "Taking everything in my stride",
+          "Don't need reason, don't need rhyme",
+          "Ain't nothing I would rather do",
+          "Going down, party time",
+          "My friends are gonna be there too",
+          "I'm on the highway to hell"
+        ]
+      },
+      {
+        title: "Livin' on a Prayer", artist: "Bon Jovi",
+        lyrics: [
+          "Tommy used to work on the docks",
+          "Union's been on strike, he's down on his luck",
+          "It's tough, so tough",
+          "Gina works the diner all day",
+          "Working for her man, she brings home her pay",
+          "For love, for love",
+          "She says we've got to hold on to what we've got",
+          "It doesn't make a difference if we make it or not",
+          "We've got each other and that's a lot",
+          "For love, we'll give it a shot"
+        ]
+      },
+      {
+        title: "It's My Life", artist: "Bon Jovi",
+        lyrics: [
+          "This ain't a song for the broken-hearted",
+          "No silent prayer for the faith-departed",
+          "I ain't gonna be just a face in the crowd",
+          "You're gonna hear my voice when I shout it out loud",
+          "It's my life, it's now or never",
+          "I ain't gonna live forever",
+          "I just want to live while I'm alive",
+          "It's my life, my heart is like an open highway",
+          "Like Frankie said I did it my way"
+        ]
+      },
+      {
+        title: "I Will Always Love You", artist: "Whitney Houston",
+        lyrics: [
+          "If I should stay",
+          "I would only be in your way",
+          "So I'll go, but I know",
+          "I'll think of you every step of the way",
+          "And I will always love you",
+          "I will always love you",
+          "You, my darling you",
+          "Bittersweet memories",
+          "That is all I'm taking with me",
+          "So goodbye, please don't cry"
+        ]
+      },
+      {
+        title: "Careless Whisper", artist: "George Michael",
+        lyrics: [
+          "I feel so unsure",
+          "As I take your hand and lead you to the dance floor",
+          "As the music dies, something in your eyes",
+          "Calls to mind a silver screen and all its sad goodbyes",
+          "I'm never gonna dance again",
+          "Guilty feet have got no rhythm",
+          "Though it's easy to pretend",
+          "I know you're not a fool",
+          "Should've known better than to cheat a friend"
+        ]
+      },
+      {
+        title: "Last Christmas", artist: "Wham!",
+        lyrics: [
+          "Last Christmas I gave you my heart",
+          "But the very next day you gave it away",
+          "This year, to save me from tears",
+          "I'll give it to someone special",
+          "Once bitten and twice shy",
+          "I keep my distance but you still catch my eye",
+          "Tell me baby, do you recognize me?",
+          "Well, it's been a year, it doesn't surprise me"
+        ]
+      },
+      {
+        title: "Take On Me", artist: "a-ha",
+        lyrics: [
+          "Talking away",
+          "I don't know what I'm to say",
+          "I'll say it anyway",
+          "Today's another day to find you",
+          "Shying away",
+          "I'll be coming for your love, okay?",
+          "Take on me, take me on",
+          "I'll be gone in a day or two",
+          "So needless to say",
+          "I'm odds and ends, but I'll be stumbling away"
+        ]
+      },
+      {
+        title: "Dancing Queen", artist: "ABBA",
+        lyrics: [
+          "You can dance, you can jive",
+          "Having the time of your life",
+          "See that girl, watch that scene",
+          "Digging the Dancing Queen",
+          "Friday night and the lights are low",
+          "Looking out for the place to go",
+          "Where they play the right music, getting in the swing",
+          "You come in to look for a king",
+          "Anybody could be that guy",
+          "Night is young and the music's high"
+        ]
+      },
+      {
+        title: "Mamma Mia", artist: "ABBA",
+        lyrics: [
+          "I've been cheated by you since I don't know when",
+          "So I made up my mind, it must come to an end",
+          "Look at me now, will I ever learn?",
+          "I don't know how, but I suddenly lose control",
+          "There's a fire within my soul",
+          "Just one look and I can hear a bell ring",
+          "One more look and I forget everything",
+          "Mamma mia, here I go again",
+          "My my, how can I resist you?"
+        ]
+      },
+      {
+        title: "Waterloo", artist: "ABBA",
+        lyrics: [
+          "My my, at Waterloo Napoleon did surrender",
+          "Oh yeah, and I have met my destiny in quite a similar way",
+          "The history book on the shelf",
+          "Is always repeating itself",
+          "Waterloo, I was defeated, you won the war",
+          "Waterloo, promise to love you for ever more",
+          "Waterloo, couldn't escape if I wanted to",
+          "Waterloo, knowing my fate is to be with you"
+        ]
+      },
+      {
+        title: "Fernando", artist: "ABBA",
+        lyrics: [
+          "Can you hear the drums Fernando?",
+          "I remember long ago another starry night like this",
+          "In the firelight Fernando",
+          "You were humming to yourself and softly strumming your guitar",
+          "I could hear the distant drums",
+          "And sounds of bugle calls were coming from afar",
+          "There was something in the air that night",
+          "The stars were bright, Fernando"
+        ]
+      },
+      {
+        title: "Chiquitita", artist: "ABBA",
+        lyrics: [
+          "Chiquitita, tell me what's wrong",
+          "You're enchained by your own sorrow",
+          "In your eyes there is no hope for tomorrow",
+          "How I hate to see you like this",
+          "There is no way you can deny it",
+          "I can see that you're oh so sad, so quiet",
+          "Chiquitita, tell me the truth",
+          "I'm a shoulder you can cry on",
+          "Your best friend, I'm the one you must rely on"
+        ]
+      },
+      {
+        title: "The Winner Takes It All", artist: "ABBA",
+        lyrics: [
+          "I don't wanna talk",
+          "About things we've gone through",
+          "Though it's hurting me",
+          "Now it's history",
+          "I've played all my cards",
+          "And that's what you've done too",
+          "Nothing more to say",
+          "No more ace to play",
+          "The winner takes it all",
+          "The loser standing small",
+          "Beside the victory",
+          "That's her destiny"
+        ]
+      },
+      {
+        title: "I Have a Dream", artist: "ABBA",
+        lyrics: [
+          "I have a dream, a song to sing",
+          "To help me cope with anything",
+          "If you see the wonder of a fairy tale",
+          "You can take the future even if you fail",
+          "I believe in angels",
+          "Something good in everything I see",
+          "I believe in angels",
+          "When I know the time is right for me",
+          "I'll cross the stream, I have a dream"
+        ]
+      },
+      {
+        title: "Thank You for the Music", artist: "ABBA",
+        lyrics: [
+          "I'm nothing special, in fact I'm a bit of a bore",
+          "If I tell a joke, you've probably heard it before",
+          "But I have a talent, a wonderful thing",
+          "Cause everyone listens when I start to sing",
+          "I'm so grateful and proud",
+          "All I want is to sing it out loud",
+          "So I say thank you for the music",
+          "The songs I'm singing",
+          "Thanks for all the joy they're bringing"
+        ]
+      },
+      {
+        title: "Voulez-Vous", artist: "ABBA",
+        lyrics: [
+          "People everywhere",
+          "A sense of expectation hanging in the air",
+          "Giving out a spark",
+          "Across the room your eyes are glowing in the dark",
+          "And here we go again, we know the start, we know the end",
+          "Masters of the scene",
+          "We've done it all before and now we're back to get some more",
+          "You know what I mean",
+          "Voulez-vous, take it now or leave it"
+        ]
+      },
+      {
+        title: "Gimme! Gimme! Gimme!", artist: "ABBA",
+        lyrics: [
+          "Half past twelve",
+          "And I'm watching the late show in my flat all alone",
+          "How I hate to spend the evening on my own",
+          "Autumn winds blowing outside my window as I look around the room",
+          "And it makes me so depressed to see the gloom",
+          "There's not a soul out there",
+          "No one to hear my prayer",
+          "Gimme gimme gimme a man after midnight",
+          "Won't somebody help me chase the shadows away"
+        ]
+      },
+      {
+        title: "S.O.S.", artist: "ABBA",
+        lyrics: [
+          "Where are those happy days, they seem so hard to find",
+          "I tried to reach for you, but you have closed your mind",
+          "Whatever happened to our love?",
+          "I wish I understood",
+          "It used to be so nice, it used to be so good",
+          "So when you're near me, darling can't you hear me",
+          "S.O.S.",
+          "The love you gave me, nothing else can save me",
+          "S.O.S."
+        ]
+      },
+      {
+        title: "Money Money Money", artist: "ABBA",
+        lyrics: [
+          "I work all night, I work all day",
+          "To pay the bills I have to pay",
+          "Ain't it sad",
+          "And still there never seems to be a single penny left for me",
+          "That's too bad",
+          "In my dreams I have a plan",
+          "If I got me a wealthy man",
+          "I wouldn't have to work at all",
+          "I'd fool around and have a ball",
+          "Money money money must be funny",
+          "In the rich man's world"
+        ]
+      },
+      {
+        title: "Knowing Me Knowing You", artist: "ABBA",
+        lyrics: [
+          "No more carefree laughter",
+          "Silence ever after",
+          "Walking through an empty house",
+          "Tears in my eyes",
+          "Here is where the story ends",
+          "This is goodbye",
+          "Knowing me, knowing you",
+          "There is nothing we can do",
+          "Knowing me, knowing you",
+          "We just have to face it, this time we're through"
+        ]
+      },
+      {
+        title: "Lay All Your Love on Me", artist: "ABBA",
+        lyrics: [
+          "I wasn't jealous before we met",
+          "Now every woman I see is a potential threat",
+          "And I'm possessive, it isn't nice",
+          "You've heard me saying that smoking was my only vice",
+          "But now it isn't true",
+          "Now everything is new",
+          "And all I've learned has overturned",
+          "I beg of you",
+          "Don't go wasting your emotion",
+          "Lay all your love on me"
+        ]
+      },
+      {
+        title: "One of Us", artist: "ABBA",
+        lyrics: [
+          "They passed me by, all of those great romances",
+          "You were, I felt, robbing me of my rightful chances",
+          "My picture clear, everything seemed so easy",
+          "And so I dealt you the blow",
+          "One of us had to go",
+          "Now it's different, I want you to know",
+          "One of us is crying",
+          "One of us is lying",
+          "In her lonely bed"
+        ]
+      },
+      {
+        title: "Ring Ring", artist: "ABBA",
+        lyrics: [
+          "I was sitting by the phone",
+          "I was waiting all alone",
+          "Baby by myself I sit and wait and wonder about you",
+          "It's a dark and dreary night",
+          "Seems like nothing's going right",
+          "Won't you tell me honey how can I go on here without you?",
+          "Yes I'm down and feeling blue",
+          "And I don't know what to do",
+          "Ring ring, why don't you give me a call?"
+        ]
+      },
+      {
+        title: "I'm Still Alive", artist: "ABBA",
+        lyrics: [
+          "I was a loser in the game of love",
+          "I couldn't win, I was out of luck",
+          "But I'm still alive, I'm still alive",
+          "I've been down and out and I've been kicked around",
+          "But I'm still alive, I'm still alive",
+          "I'm not the man I used to be",
+          "But I'm still alive, I'm still alive",
+          "And I'm here to tell you that I'm still alive"
         ]
       }
     ];
 
-    let songs = [];          // 曲库
-    let currentSongIndex = 0;
+    // 全局状态
     let apiKey = '';
-    let skippedLines = new Set(); // 当前歌曲中标记为“跳过”的行索引
+    let currentIndex = 0;
+    let currentSong = null;
+    let skipFlags = {};
+    let userTranslations = {};
 
-    // DOM
-    const lyricCard = document.getElementById('lyricCard');
-    const analysisBox = document.getElementById('analysisBox');
+    const CURRENT_INDEX_KEY = 'lyric_current_index_v2';
+    const TRANSLATION_PREFIX = 'lyric_trans_v2_';
+    const SKIP_PREFIX = 'lyric_skip_v2_';
+
+    const songTitleEl = document.getElementById('songTitle');
+    const songArtistEl = document.getElementById('songArtist');
+    const linesContainer = document.getElementById('linesContainer');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const exportBtn = document.getElementById('exportBtn');
     const analyzeBtn = document.getElementById('analyzeBtn');
-    const prevSongBtn = document.getElementById('prevSongBtn');
-    const nextSongBtn = document.getElementById('nextSongBtn');
-    const songIndexSpan = document.getElementById('songIndex');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const settingsPanel = document.getElementById('settingsPanel');
+    const analysisBox = document.getElementById('analysisBox');
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    const libraryBtn = document.getElementById('libraryBtn');
-    const mainView = document.getElementById('mainView');
-    const libraryView = document.getElementById('libraryView');
-    const libraryGrid = document.getElementById('libraryGrid');
-    const backToMainBtn = document.getElementById('backToMainBtn');
-    const addSongBtn = document.getElementById('addSongBtn');
-    const addSongOverlay = document.getElementById('addSongOverlay');
-    const songUrlInput = document.getElementById('songUrlInput');
-    const songTitleInput = document.getElementById('songTitleInput');
-    const confirmAddBtn = document.getElementById('confirmAddBtn');
-    const cancelAddBtn = document.getElementById('cancelAddBtn');
-    const addStatus = document.getElementById('addStatus');
+    const progressEl = document.getElementById('progress');
 
-    // ========== 数据管理 ==========
-    function loadSongs() {
-      const stored = localStorage.getItem('lyric_songs');
-      if (stored) { try { songs = JSON.parse(stored); } catch { songs = []; } }
-      if (songs.length === 0) { songs = [...DEFAULT_SONGS]; saveSongs(); }
+    function getStorageKey(song, prefix) {
+      return prefix + song.title.replace(/[^a-zA-Z0-9]/g, '_');
     }
-    function saveSongs() { localStorage.setItem('lyric_songs', JSON.stringify(songs)); }
-    function loadApiKey() { apiKey = localStorage.getItem('deepseek_api_key') || ''; if (apiKey) apiKeyInput.value = apiKey; }
-    function saveApiKey() { const key = apiKeyInput.value.trim(); if (key) { localStorage.setItem('deepseek_api_key', key); apiKey = key; alert('API Key 已保存'); } }
 
-    // ========== 渲染歌词 ==========
-    function renderSong() {
-      if (songs.length === 0) {
-        lyricCard.innerHTML = '<div style="text-align:center;color:#ccc;padding:20px;">曲库为空，请添加歌曲</div>';
-        return;
-      }
-      const song = songs[currentSongIndex];
-      skippedLines = new Set(); // 切歌时重置跳过标记
-      let html = `<div class="song-title">${escHtml(song.title)} · ${escHtml(song.artist || '')}</div>`;
-      song.lines.forEach((line, idx) => {
-        html += `
-          <div class="line-pair" data-line="${idx}">
-            <div class="original-line">${escHtml(line.original)}</div>
-            <div class="translation-line">${escHtml(line.translation)}</div>
-            <button class="skip-btn" data-index="${idx}" title="重复不翻译">⊙</button>
+    function loadSongState(song) {
+      const tKey = getStorageKey(song, TRANSLATION_PREFIX);
+      const sKey = getStorageKey(song, SKIP_PREFIX);
+      userTranslations = JSON.parse(localStorage.getItem(tKey) || '{}');
+      skipFlags = JSON.parse(localStorage.getItem(sKey) || '{}');
+    }
+
+    function saveSongState(song) {
+      localStorage.setItem(getStorageKey(song, TRANSLATION_PREFIX), JSON.stringify(userTranslations));
+      localStorage.setItem(getStorageKey(song, SKIP_PREFIX), JSON.stringify(skipFlags));
+    }
+
+    function renderSong(index) {
+      currentSong = SONGS[index];
+      if (!currentSong) return;
+      songTitleEl.textContent = currentSong.title;
+      songArtistEl.textContent = currentSong.artist;
+      loadSongState(currentSong);
+
+      const lines = currentSong.lyrics || [];
+      linesContainer.innerHTML = lines.map((line, idx) => {
+        const skipped = skipFlags[idx] || false;
+        const translation = userTranslations[idx] || '';
+        return `
+          <div class="line-item">
+            <div class="original-text">${escHtml(line)}</div>
+            <button class="skip-btn ${skipped ? 'skipped' : ''}" data-index="${idx}">跳过</button>
+            <textarea class="translation-input" data-index="${idx}" placeholder="输入翻译..." ${skipped ? 'disabled' : ''}>${escHtml(translation)}</textarea>
           </div>
         `;
-      });
-      lyricCard.innerHTML = html;
-      songIndexSpan.textContent = `${currentSongIndex + 1} / ${songs.length}`;
+      }).join('');
 
-      // 绑定跳过按钮
       document.querySelectorAll('.skip-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          e.stopPropagation();
           const idx = parseInt(btn.dataset.index);
-          if (skippedLines.has(idx)) {
-            skippedLines.delete(idx);
-            btn.classList.remove('active');
-          } else {
-            skippedLines.add(idx);
-            btn.classList.add('active');
-          }
+          skipFlags[idx] = !skipFlags[idx];
+          saveSongState(currentSong);
+          renderSong(index);
         });
       });
+      document.querySelectorAll('.translation-input').forEach(textarea => {
+        textarea.addEventListener('input', (e) => {
+          const idx = parseInt(textarea.dataset.index);
+          userTranslations[idx] = textarea.value;
+          saveSongState(currentSong);
+        });
+      });
+
+      progressEl.textContent = `${index+1}/${SONGS.length}`;
+      analysisBox.style.display = 'none';
+      localStorage.setItem(CURRENT_INDEX_KEY, index);
     }
 
-    // ========== 分析翻译 ==========
-    async function analyzeTranslation() {
-      if (!apiKey) { alert('请先设置 DeepSeek API Key（点击右上角齿轮）'); return; }
-      const song = songs[currentSongIndex];
-      if (!song) return;
+    function changeSong(delta) {
+      let newIndex = currentIndex + delta;
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= SONGS.length) newIndex = SONGS.length - 1;
+      if (newIndex !== currentIndex) {
+        saveSongState(currentSong);
+        currentIndex = newIndex;
+        renderSong(currentIndex);
+      }
+    }
 
-      analysisBox.style.display = 'block';
-      analysisBox.textContent = '⏳ 分析中...';
-
-      // 构建请求：逐行分析，跳过已标记的行
-      const linesToAnalyze = song.lines
-        .map((line, idx) => ({ ...line, idx }))
-        .filter(l => !skippedLines.has(l.idx));
-
-      if (linesToAnalyze.length === 0) {
-        analysisBox.textContent = '当前歌曲所有行都已被标记为跳过。';
+    async function analyzeCurrentSong() {
+      if (!apiKey) { alert('请先保存API Key'); return; }
+      if (!currentSong) return;
+      const lines = currentSong.lyrics || [];
+      const nonSkipped = lines.map((line, idx) => ({ line, idx, trans: userTranslations[idx] || '', skipped: skipFlags[idx] }))
+                           .filter(item => !item.skipped && item.trans.trim() !== '');
+      if (nonSkipped.length === 0) {
+        analysisBox.style.display = 'block';
+        analysisBox.textContent = '没有可分析的行（请填写翻译）。';
         return;
       }
-
-      const linesText = linesToAnalyze.map(l => `行${l.idx+1} 原文：${l.original}\n翻译：${l.translation}`).join('\n\n');
-      const prompt = `你是一个歌词翻译质量分析助手。请分析以下歌词翻译，找出翻译不好的地方（用红杠标记）和翻译好的地方（用绿色标记）。\n\n对每行，用JSON格式返回：\n{\n  "lineIndex": 行号(从0开始),\n  "badParts": [{"text": "不好的词", "reason": "原因"}],\n  "goodParts": [{"text": "好的词", "reason": "原因"}],\n  "overall": "该行整体评价"\n}\n\n只输出JSON数组，不要其他文字。\n\n${linesText}`;
-
+      analysisBox.style.display = 'block';
+      analysisBox.textContent = '分析中...';
+      const linesData = nonSkipped.map(item => `原文：${item.line}\n翻译：${item.trans}`).join('\n\n');
+      const prompt = `请逐行分析以下英文歌词翻译的质量，指出每行的优点和不足。然后给出整体评价，说明总体好在哪、不好在哪。\n\n${linesData}`;
       try {
         const resp = await fetch('https://api.deepseek.com/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.5,
-            max_tokens: 2000
-          })
+          body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.6, max_tokens: 1000 })
         });
-        if (!resp.ok) throw new Error('请求失败: ' + resp.status);
+        if (!resp.ok) throw new Error('分析请求失败');
         const json = await resp.json();
-        const text = json.choices[0].message.content;
-        const match = text.match(/\[[\s\S]*\]/);
-        if (!match) throw new Error('AI 返回格式错误');
-        const results = JSON.parse(match[0]);
-        renderAnalysis(results);
+        analysisBox.textContent = json.choices[0].message.content;
       } catch (err) {
-        analysisBox.textContent = '❌ 分析失败：' + err.message;
+        analysisBox.textContent = '分析失败: ' + err.message;
       }
     }
 
-    function renderAnalysis(results) {
-      const song = songs[currentSongIndex];
-      let html = '<strong>📝 翻译分析结果</strong><br><br>';
-      results.forEach(r => {
-        const line = song.lines[r.lineIndex];
-        if (!line) return;
-        html += `<div style="margin-bottom:10px;"><strong>行${r.lineIndex + 1}：</strong>${escHtml(line.original)}<br>`;
-        html += `翻译：${escHtml(line.translation)}<br>`;
-
-        // 不好的部分（红杠划掉 + 分析）
-        if (r.badParts && r.badParts.length > 0) {
-          r.badParts.forEach(bp => {
-            html += `<span style="color:#cc0000;">❌ <span style="text-decoration:line-through;text-decoration-color:#cc0000;text-decoration-thickness:2px;">${escHtml(bp.text)}</span></span> — ${escHtml(bp.reason)}<br>`;
-          });
-        }
-        // 好的部分（绿色下划线 + 分析）
-        if (r.goodParts && r.goodParts.length > 0) {
-          r.goodParts.forEach(gp => {
-            html += `<span style="color:#2a7a2a;">✅ <span style="border-bottom:3px solid #2a7a2a;">${escHtml(gp.text)}</span></span> — ${escHtml(gp.reason)}<br>`;
-          });
-        }
-        html += `<span style="color:#888;">整体：${escHtml(r.overall)}</span></div>`;
+    function exportTranslation() {
+      if (!currentSong) return;
+      const lines = currentSong.lyrics || [];
+      let exportText = `${currentSong.title} - ${currentSong.artist}\n\n`;
+      lines.forEach((line, idx) => {
+        if (skipFlags[idx]) return;
+        const trans = userTranslations[idx] || '';
+        exportText += `原文：${line}\n翻译：${trans}\n\n`;
       });
-      analysisBox.innerHTML = html;
+      const blob = new Blob([exportText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentSong.title}_翻译.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
-    // ========== 曲库视图 ==========
-    function renderLibrary() {
-      libraryGrid.innerHTML = '';
-      if (songs.length === 0) { libraryGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:20px;">曲库为空</div>'; }
-      songs.forEach((song, idx) => {
-        const card = document.createElement('div');
-        card.className = 'lib-card';
-        card.innerHTML = `<div class="lib-title">${escHtml(song.title)}</div><div class="lib-artist">${escHtml(song.artist || '')}</div>`;
-        card.addEventListener('click', () => {
-          currentSongIndex = idx;
-          renderSong();
-          libraryView.style.display = 'none';
-          mainView.style.display = 'flex';
-          analysisBox.style.display = 'none';
-        });
-        libraryGrid.appendChild(card);
-      });
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function init() {
+      const savedIndex = parseInt(localStorage.getItem(CURRENT_INDEX_KEY));
+      currentIndex = (savedIndex >= 0 && savedIndex < SONGS.length) ? savedIndex : 0;
+      renderSong(currentIndex);
+      apiKey = localStorage.getItem('deepseek_api_key') || '';
+      if (apiKey) apiKeyInput.value = apiKey;
     }
 
-    async function addSongFromUrl() {
-      const url = songUrlInput.value.trim();
-      const title = songTitleInput.value.trim();
-      if (!url) { addStatus.textContent = '请输入链接'; return; }
-      addStatus.textContent = '⏳ 正在提取原文...';
-
-      try {
-        // 尝试从链接抓取歌词文本（简单处理：直接取页面文本，实际可能需要更智能的解析）
-        const resp = await fetch(url, { mode: 'cors' });
-        if (!resp.ok) throw new Error('无法访问链接: ' + resp.status);
-        const html = await resp.text();
-        // 简单提取文本（去掉标签）
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        const text = tmp.textContent || '';
-        // 尝试按换行拆分，取非空行作为歌词行
-        const lines = text.split('\n').filter(l => l.trim().length > 0).slice(0, 30);
-        if (lines.length === 0) throw new Error('未提取到有效内容');
-
-        const newSong = {
-          title: title || '未命名歌曲',
-          artist: '',
-          lines: lines.map(l => ({ original: l.trim(), translation: '' }))
-        };
-        songs.push(newSong);
-        saveSongs();
-        renderLibrary();
-        addSongOverlay.style.display = 'none';
-        songUrlInput.value = '';
-        songTitleInput.value = '';
-        addStatus.textContent = '';
-        alert('已添加 ' + lines.length + ' 行歌词');
-      } catch (err) {
-        addStatus.textContent = '❌ ' + err.message;
+    prevBtn.addEventListener('click', () => changeSong(-1));
+    nextBtn.addEventListener('click', () => changeSong(1));
+    exportBtn.addEventListener('click', exportTranslation);
+    analyzeBtn.addEventListener('click', analyzeCurrentSong);
+    saveApiKeyBtn.addEventListener('click', () => {
+      const key = apiKeyInput.value.trim();
+      if (key) {
+        localStorage.setItem('deepseek_api_key', key);
+        apiKey = key;
+        alert('API Key 已保存');
       }
-    }
+    });
 
-    // ========== 事件 ==========
-    prevSongBtn.addEventListener('click', () => {
-      if (songs.length === 0) return;
-      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-      renderSong();
-      analysisBox.style.display = 'none';
-    });
-    nextSongBtn.addEventListener('click', () => {
-      if (songs.length === 0) return;
-      currentSongIndex = (currentSongIndex + 1) % songs.length;
-      renderSong();
-      analysisBox.style.display = 'none';
-    });
-    analyzeBtn.addEventListener('click', analyzeTranslation);
-    settingsBtn.addEventListener('click', () => { settingsPanel.style.display = settingsPanel.style.display === 'flex' ? 'none' : 'flex'; });
-    saveApiKeyBtn.addEventListener('click', saveApiKey);
-    closeSettingsBtn.addEventListener('click', () => { settingsPanel.style.display = 'none'; });
-    libraryBtn.addEventListener('click', () => {
-      mainView.style.display = 'none';
-      libraryView.style.display = 'flex';
-      renderLibrary();
-    });
-    backToMainBtn.addEventListener('click', () => {
-      libraryView.style.display = 'none';
-      mainView.style.display = 'flex';
-      analysisBox.style.display = 'none';
-    });
-    addSongBtn.addEventListener('click', () => { addSongOverlay.style.display = 'flex'; });
-    cancelAddBtn.addEventListener('click', () => { addSongOverlay.style.display = 'none'; });
-    confirmAddBtn.addEventListener('click', addSongFromUrl);
-
-    // ========== 初始化 ==========
-    loadApiKey();
-    loadSongs();
-    renderSong();
-    songIndexSpan.textContent = songs.length > 0 ? `1 / ${songs.length}` : '0 / 0';
+    init();
   })();
-
-  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 </body>
 </html>

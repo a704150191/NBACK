@@ -45,92 +45,43 @@
         .api-settings input { width: 180px; padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; }
         .date-range { display: flex; gap: 0.3rem; align-items: center; }
         .date-range input { padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; width: 110px; }
+        .export-single { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+        .export-single select, .export-single input { padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; }
+        .export-single button { padding: 0.3rem 0.7rem; font-size: 0.65rem; border-radius: 1rem; border: 1px solid #aaa; background: white; cursor: pointer; white-space: nowrap; font-weight: 600; }
         @media (max-width: 500px) { .app-container { padding: 1rem 0.8rem; } th, td { padding: 0.4rem 0.2rem; font-size: 0.7rem; } }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <h1>每日记录· 十一项追踪</h1>
+    <h1>每日记录 · 十一项追踪</h1>
+    <div class="input-area"><input type="text" id="contentInput" placeholder="输入内容，点击右侧添加..."><button id="addBtn">确认</button></div>
+    <div class="category-selector" id="categorySelector"><div class="category-panel"><h3>选择分类</h3><div class="grid-choices" id="categoryGrid"><button data-category="戒烟">1. 戒烟</button><button data-category="鑫康合COPD">2. 鑫康合COPD</button><button data-category="降糖">3. 降糖</button><button data-category="肺动脉高压">4. 肺动脉高压</button><button data-category="EFC17919">5. EFC17919</button><button data-category="B001">6. B001</button><button data-category="海思科COPD关中心">7. 海思科COPD关中心</button><button data-category="海思科支扩关中心">8. 海思科支扩关中心</button><button data-category="康诺亚哮喘">9. 康诺亚哮喘</button><button data-category="公司">10. 公司</button><button data-category="中心">11. 中心</button></div><button class="cancel-btn" id="cancelCategoryBtn">取消</button></div></div>
+    <div class="table-wrapper"><table id="recordTable"><thead><tr><th>日期</th><th>戒烟</th><th>鑫康合COPD</th><th>降糖</th><th>肺动脉高压</th><th>EFC17919</th><th>B001</th><th>海思科COPD关中心</th><th>海思科支扩关中心</th><th>康诺亚哮喘</th><th>公司</th><th>中心</th></tr></thead><tbody id="tableBody"></tbody></table></div>
 
-    <div class="input-area">
-        <input type="text" id="contentInput" placeholder="输入内容，点击右侧添加...">
-        <button id="addBtn">确认</button>
-    </div>
-
-    <div class="category-selector" id="categorySelector">
-        <div class="category-panel">
-            <h3>选择分类</h3>
-            <div class="grid-choices" id="categoryGrid">
-                <button data-category="戒烟">1. 戒烟</button>
-                <button data-category="鑫康合COPD">2. 鑫康合COPD</button>
-                <button data-category="降糖">3. 降糖</button>
-                <button data-category="肺动脉高压">4. 肺动脉高压</button>
-                <button data-category="EFC17919">5. EFC17919</button>
-                <button data-category="B001">6. B001</button>
-                <button data-category="海思科COPD关中心">7. 海思科COPD关中心</button>
-                <button data-category="海思科支扩关中心">8. 海思科支扩关中心</button>
-                <button data-category="康诺亚哮喘">9. 康诺亚哮喘</button>
-                <button data-category="公司">10. 公司</button>
-                <button data-category="中心">11. 中心</button>
-            </div>
-            <button class="cancel-btn" id="cancelCategoryBtn">取消</button>
-        </div>
-    </div>
-
-    <div class="table-wrapper">
-        <table id="recordTable">
-            <thead>
-                <tr>
-                    <th>日期</th>
-                    <th>戒烟</th>
-                    <th>鑫康合COPD</th>
-                    <th>降糖</th>
-                    <th>肺动脉高压</th>
-                    <th>EFC17919</th>
-                    <th>B001</th>
-                    <th>海思科COPD关中心</th>
-                    <th>海思科支扩关中心</th>
-                    <th>康诺亚哮喘</th>
-                    <th>公司</th>
-                    <th>中心</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+    <!-- 导出单列区域 -->
+    <div class="export-single">
+        <span style="font-size:0.7rem;color:#333;">导出单列：</span>
+        <select id="exportColumnSelect"></select>
+        <input type="date" id="exportStartDate"> - <input type="date" id="exportEndDate">
+        <button id="exportSingleBtn">导出</button>
     </div>
 
     <!-- API 周报区域 -->
     <div class="api-settings">
         <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...）">
-        <div class="date-range">
-            <input type="date" id="startDate"> - <input type="date" id="endDate">
-        </div>
+        <div class="date-range"><input type="date" id="startDate"> - <input type="date" id="endDate"></div>
         <button id="generateReportBtn" style="padding:0.2rem 0.8rem;font-size:0.65rem;border-radius:1rem;border:1px solid #aaa;background:white;cursor:pointer;">生成周报</button>
         <span id="reportStatus" style="font-size:0.65rem;color:#999;"></span>
     </div>
     <div class="report-box" id="reportBox" style="display:none;"></div>
 
     <div class="footer-row">
-        <div class="sync-row">
-            <input type="password" id="syncPassword" placeholder="同步密码">
-            <button id="uploadBtn">上传</button>
-            <button id="downloadBtn">下载</button>
-            <span id="syncStatus" style="font-size:0.65rem;color:#999;"></span>
-        </div>
+        <div class="sync-row"><input type="password" id="syncPassword" placeholder="同步密码"><button id="uploadBtn">上传</button><button id="downloadBtn">下载</button><span id="syncStatus" style="font-size:0.65rem;color:#999;"></span></div>
         <span class="reset-link" id="resetConfigLink">重置配置</span>
     </div>
-    <div class="footer-note">每天自动生成一行 · 点击类别编号选择分类 · 支持AI周报</div>
+    <div class="footer-note">每天自动生成一行 · 支持单列导出、AI周报</div>
 </div>
-
-<div class="setup-overlay" id="setupOverlay">
-    <div class="setup-panel">
-        <h3 style="text-align:center;">配置 GitHub 同步</h3>
-        <input type="text" id="githubUserInput" placeholder="GitHub 用户名">
-        <input type="text" id="repoInput" placeholder="仓库名（如 NBACK）">
-        <input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)">
-        <button id="saveSetupBtn">保存配置</button>
-    </div>
-</div>
+<div class="setup-overlay" id="setupOverlay"><div class="setup-panel"><h3 style="text-align:center;">配置 GitHub 同步</h3><input type="text" id="githubUserInput" placeholder="GitHub 用户名"><input type="text" id="repoInput" placeholder="仓库名（如 NBACK）"><input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)"><button id="saveSetupBtn">保存配置</button></div></div>
 
 <script>
     (function() {
@@ -165,51 +116,24 @@
         const generateReportBtn = document.getElementById('generateReportBtn');
         const reportBox = document.getElementById('reportBox');
         const reportStatus = document.getElementById('reportStatus');
+        const exportColumnSelect = document.getElementById('exportColumnSelect');
+        const exportStartDate = document.getElementById('exportStartDate');
+        const exportEndDate = document.getElementById('exportEndDate');
+        const exportSingleBtn = document.getElementById('exportSingleBtn');
 
         function getTodayString() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
 
-        function encrypt(text, password) {
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length));
-            }
-            return btoa(result);
-        }
-        function decrypt(encBase64, password) {
-            try {
-                const str = atob(encBase64);
-                let result = '';
-                for (let i = 0; i < str.length; i++) {
-                    result += String.fromCharCode(str.charCodeAt(i) ^ password.charCodeAt(i % password.length));
-                }
-                return result;
-            } catch(e) { return null; }
-        }
+        function encrypt(text, password) { let result = ''; for (let i = 0; i < text.length; i++) result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length)); return btoa(result); }
+        function decrypt(encBase64, password) { try { const str = atob(encBase64); let result = ''; for (let i = 0; i < str.length; i++) result += String.fromCharCode(str.charCodeAt(i) ^ password.charCodeAt(i % password.length)); return result; } catch(e) { return null; } }
 
-        function loadSyncConfig() {
-            const stored = localStorage.getItem(SETUP_KEY);
-            if (stored) { try { syncConfig = JSON.parse(stored); } catch { syncConfig = null; } }
-            if (syncConfig && syncConfig.username && syncConfig.token && syncConfig.repo) { setupOverlay.style.display = 'none'; }
-            else { setupOverlay.style.display = 'flex'; syncConfig = null; }
-        }
-        function saveSyncConfig() {
-            const u = githubUserInput.value.trim(), r = repoInput.value.trim(), t = tokenInput.value.trim();
-            if (!u || !r || !t) { alert('请填完整'); return; }
-            syncConfig = { username: u, repo: r, token: t };
-            localStorage.setItem(SETUP_KEY, JSON.stringify(syncConfig));
-            setupOverlay.style.display = 'none';
-        }
+        function loadSyncConfig() { const stored = localStorage.getItem(SETUP_KEY); if (stored) { try { syncConfig = JSON.parse(stored); } catch { syncConfig = null; } } if (syncConfig && syncConfig.username && syncConfig.token && syncConfig.repo) { setupOverlay.style.display = 'none'; } else { setupOverlay.style.display = 'flex'; syncConfig = null; } }
+        function saveSyncConfig() { const u = githubUserInput.value.trim(), r = repoInput.value.trim(), t = tokenInput.value.trim(); if (!u || !r || !t) { alert('请填完整'); return; } syncConfig = { username: u, repo: r, token: t }; localStorage.setItem(SETUP_KEY, JSON.stringify(syncConfig)); setupOverlay.style.display = 'none'; }
         function resetSyncConfig() { localStorage.removeItem(SETUP_KEY); syncConfig = null; setupOverlay.style.display = 'flex'; githubUserInput.value = ''; repoInput.value = ''; tokenInput.value = ''; }
 
-        function loadData() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            data = stored ? (() => { try { return JSON.parse(stored); } catch { return {}; } })() : {};
-            const today = getTodayString();
-            if (!data[today]) { data[today] = {}; CATEGORIES.forEach(c => data[today][c] = []); saveData(); }
-        }
+        function loadData() { const stored = localStorage.getItem(STORAGE_KEY); data = stored ? (() => { try { return JSON.parse(stored); } catch { return {}; } })() : {}; const today = getTodayString(); if (!data[today]) { data[today] = {}; CATEGORIES.forEach(c => data[today][c] = []); saveData(); } }
         function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
         function renderTable() {
@@ -241,75 +165,77 @@
             saveData(); renderTable(); contentInput.value = ''; pendingContent = ''; hideCat();
         }
 
-        // ===== AI 周报 =====
         async function generateReport() {
-            const apiKey = apiKeyInput.value.trim();
-            if (!apiKey) { reportStatus.textContent = '请填写API Key'; return; }
-            const start = startDateInput.value;
-            const end = endDateInput.value;
+            const apiKey = apiKeyInput.value.trim(); if (!apiKey) { reportStatus.textContent = '请填写API Key'; return; }
+            const start = startDateInput.value; const end = endDateInput.value;
             if (!start || !end) { reportStatus.textContent = '请选择日期范围'; return; }
-
-            reportStatus.textContent = '正在生成...';
-            reportBox.style.display = 'block';
-            reportBox.textContent = '';
-
-            // 收集指定日期范围的数据
+            reportStatus.textContent = '正在生成...'; reportBox.style.display = 'block'; reportBox.textContent = '';
             const filteredData = {};
-            for (const [date, row] of Object.entries(data)) {
-                if (date >= start && date <= end) {
-                    filteredData[date] = row;
-                }
-            }
-            if (Object.keys(filteredData).length === 0) {
-                reportBox.textContent = '所选日期范围内没有数据。';
-                reportStatus.textContent = '';
-                return;
-            }
-
-            // 整理成文本
+            for (const [date, row] of Object.entries(data)) { if (date >= start && date <= end) { filteredData[date] = row; } }
+            if (Object.keys(filteredData).length === 0) { reportBox.textContent = '所选日期范围内没有数据。'; reportStatus.textContent = ''; return; }
             let promptText = `以下是用户在 ${start} 至 ${end} 期间的工作记录，按日期和分类排列：\n\n`;
             const sortedDates = Object.keys(filteredData).sort();
             for (const date of sortedDates) {
-                promptText += `【${date}】\n`;
-                const row = filteredData[date];
-                CATEGORIES.forEach(cat => {
-                    const items = row[cat] || [];
-                    if (items.length > 0) {
-                        promptText += `  ${cat}：${items.join('；')}\n`;
-                    }
-                });
+                promptText += `【${date}】\n`; const row = filteredData[date];
+                CATEGORIES.forEach(cat => { const items = row[cat] || []; if (items.length > 0) { promptText += `  ${cat}：${items.join('；')}\n`; } });
                 promptText += `\n`;
             }
             promptText += `请根据以上数据生成一份简洁的工作周报，包含：1. 本周完成的主要工作 2. 各项目进展 3. 需要关注的问题。用中文输出，200-300字。`;
-
             try {
-                const resp = await fetch('https://api.deepseek.com/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'deepseek-chat',
-                        messages: [{ role: 'user', content: promptText }],
-                        temperature: 0.7,
-                        max_tokens: 600
-                    })
-                });
-                if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.error?.message || resp.status);
-                }
-                const json = await resp.json();
-                reportBox.textContent = json.choices[0].message.content;
-                reportStatus.textContent = '生成完成';
-            } catch (err) {
-                reportBox.textContent = '生成失败：' + err.message;
-                reportStatus.textContent = '';
-            }
+                const resp = await fetch('https://api.deepseek.com/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: promptText }], temperature: 0.7, max_tokens: 600 }) });
+                if (!resp.ok) { const err = await resp.json(); throw new Error(err.error?.message || resp.status); }
+                const json = await resp.json(); reportBox.textContent = json.choices[0].message.content; reportStatus.textContent = '生成完成';
+            } catch (err) { reportBox.textContent = '生成失败：' + err.message; reportStatus.textContent = ''; }
         }
 
-        // ===== GitHub 同步 =====
+        function exportSingleColumn() {
+            const column = exportColumnSelect.value;
+            if (!column) { alert('请选择要导出的列'); return; }
+            const start = exportStartDate.value;
+            const end = exportEndDate.value;
+            if (!start || !end) { alert('请选择日期范围'); return; }
+
+            const filtered = [];
+            const sortedDates = Object.keys(data).sort();
+            for (const date of sortedDates) {
+                if (date >= start && date <= end) {
+                    const items = data[date]?.[column] || [];
+                    if (items.length > 0) {
+                        filtered.push({ date, items });
+                    }
+                }
+            }
+
+            if (filtered.length === 0) { alert('所选日期范围内该列没有数据'); return; }
+
+            let text = `导出列：${column}\n日期范围：${start} 至 ${end}\n${'='.repeat(40)}\n\n`;
+            filtered.forEach(({ date, items }) => {
+                text += `【${date}】\n`;
+                items.forEach((item, i) => {
+                    text += `  ${i + 1}. ${item}\n`;
+                });
+                text += '\n';
+            });
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${column}_${start}_${end}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function populateExportColumnSelect() {
+            exportColumnSelect.innerHTML = '<option value="">选择列</option>';
+            CATEGORIES.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                exportColumnSelect.appendChild(opt);
+            });
+        }
+
         async function upload() {
             if (!syncConfig) { syncStatus.textContent = '请先配置'; return; }
             const pw = syncPassword.value; if (!pw) { syncStatus.textContent = '请输入密码'; return; }
@@ -328,7 +254,6 @@
             try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000); const r = await fetch(apiUrl, { headers: { 'Authorization': `token ${syncConfig.token}` }, signal: c.signal }); clearTimeout(t); if (!r.ok) { syncStatus.textContent = '云端无备份'; return; } const d = await r.json(), wrapper = JSON.parse(decodeURIComponent(escape(atob(d.content)))), plain = decrypt(wrapper.data, pw); if (!plain) { syncStatus.textContent = '密码错误'; return; } data = JSON.parse(plain); saveData(); renderTable(); syncStatus.textContent = '已下载'; } catch(e) { syncStatus.textContent = e.name === 'AbortError' ? '超时' : '格式错误'; }
         }
 
-        // ===== 事件绑定 =====
         addBtn.addEventListener('click', () => { const v = contentInput.value.trim(); if (!v) { alert('请输入'); return; } pendingContent = v; showCat(); });
         categoryGrid.querySelectorAll('button').forEach(b => b.addEventListener('click', e => addContent(e.currentTarget.dataset.category)));
         cancelCategoryBtn.addEventListener('click', hideCat);
@@ -339,14 +264,15 @@
         saveSetupBtn.addEventListener('click', saveSyncConfig);
         resetConfigLink.addEventListener('click', () => { if (confirm('重置？')) resetSyncConfig(); });
         generateReportBtn.addEventListener('click', generateReport);
+        exportSingleBtn.addEventListener('click', exportSingleColumn);
 
-        // ===== 初始化 =====
-        loadSyncConfig(); loadData(); renderTable();
-        // 默认日期范围设为最近7天
+        loadSyncConfig(); loadData(); renderTable(); populateExportColumnSelect();
         const today = new Date();
         const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         startDateInput.value = sevenDaysAgo.toISOString().slice(0, 10);
         endDateInput.value = today.toISOString().slice(0, 10);
+        exportStartDate.value = sevenDaysAgo.toISOString().slice(0, 10);
+        exportEndDate.value = today.toISOString().slice(0, 10);
     })();
 </script>
 </body>

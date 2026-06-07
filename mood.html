@@ -242,7 +242,7 @@
 
 <script>
   (function() {
-    const STORAGE_KEY = 'mini_emotion_cards_v2';
+    const STORAGE_KEY = 'mini_emotion_cards';
     const API_KEY_STORAGE = 'deepseek_api_key';
     let records = [];
     let apiKey = '';
@@ -328,7 +328,7 @@
         text: text,
         intensity: intensity,
         date: getToday(),
-        comment: null // 初始无评价
+        comment: null
       };
       
       records.push(record);
@@ -389,13 +389,11 @@
           </div>
         `;
         
-        // 点击删除按钮
         card.querySelector('.card-delete').addEventListener('click', (e) => {
           e.stopPropagation();
           deleteRecord(originalIndex);
         });
         
-        // 点击卡片翻转
         card.addEventListener('click', () => {
           flipCard(originalIndex);
         });

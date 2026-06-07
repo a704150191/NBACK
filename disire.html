@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+  <title>念头记录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f5f5f5;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 0.6rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .container {
+      max-width: 450px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 1.5rem;
+      padding: 1rem 0.8rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: #333;
+      text-align: center;
+    }
+    .input-box {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .input-box input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 1rem;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.85rem;
+      outline: none;
+      background: #fff;
+    }
+    .input-box input:focus { border-color: #1a1a1a; }
+
+    .intensity-row {
+      display: flex;
+      gap: 0.3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .intensity-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 0.6rem;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #555;
+      cursor: pointer;
+      transition: 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .intensity-btn:active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    .btn {
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.9rem;
+      border-radius: 1.5rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: #333; }
+    .btn-outline {
+      background: white;
+      color: #1a1a1a;
+      border: 1px solid #1a1a1a;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 1rem;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #888;
+      cursor: pointer;
+      transition: 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .stat-text { font-size: 0.65rem; color: #aaa; margin-left: auto; }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+    }
+    .mini-card {
+      background: #fffef9;
+      border: 1px solid #e8e4d9;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.4rem 0.25rem;
+      font-size: 0.7rem;
+      color: #444;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      word-break: break-word;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: background 0.2s, border-left-color 0.2s;
+      border-left: 3px solid #ddd;
+    }
+    .mini-card.done {
+      border-left-color: #6abf69;
+      background: #f6fdf6;
+    }
+    .mini-card.done .card-text { color: #999; }
+    .card-text { font-size: 0.68rem; line-height: 1.35; flex: 1; }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.6rem;
+      color: #aaa;
+    }
+    .card-time { color: #bbb; font-size: 0.55rem; }
+    .card-intensity {
+      font-weight: 700;
+      color: #1a1a1a;
+      background: #eee;
+      border-radius: 0.3rem;
+      padding: 0.05rem 0.35rem;
+      font-size: 0.6rem;
+    }
+    .card-status {
+      font-size: 0.55rem;
+      font-weight: 600;
+      padding: 0.05rem 0.4rem;
+      border-radius: 0.3rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .card-status.undone { background: #f0f0f0; color: #888; }
+    .card-status.done-status { background: #e0f0e0; color: #5a9a5a; }
+    .card-delete {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      background: transparent;
+      border: none;
+      color: #ddd;
+      font-size: 0.6rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      z-index: 2;
+    }
+    .card-delete:hover { color: #c55; }
+
+    .empty-state {
+      text-align: center;
+      color: #ccc;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      grid-column: 1 / -1;
+    }
+    .export-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .clear-btn {
+      background: transparent;
+      border: none;
+      color: #ccc;
+      font-size: 0.6rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>念头记录</h1>
+
+  <div class="input-box">
+    <input type="text" id="contentInput" placeholder="记录一个念头...">
+    <button class="btn" id="addBtn">记录</button>
+  </div>
+
+  <div class="intensity-row">
+    <span style="font-size:0.7rem;color:#888;">强度：</span>
+    <button class="intensity-btn" data-intensity="1">1</button>
+    <button class="intensity-btn" data-intensity="2">2</button>
+    <button class="intensity-btn" data-intensity="3">3</button>
+    <button class="intensity-btn" data-intensity="4">4</button>
+    <button class="intensity-btn" data-intensity="5">5</button>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" data-filter="all">全部</button>
+    <button class="filter-btn" data-filter="undone">未实行</button>
+    <button class="filter-btn" data-filter="done">已实行</button>
+    <span class="stat-text" id="statText"></span>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid">
+    <div class="empty-state">还没有念头</div>
+  </div>
+
+  <div class="export-row">
+    <button class="clear-btn" id="clearAllBtn">清空全部</button>
+    <button class="btn btn-outline" id="exportBtn">导出</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const STORAGE_KEY = 'thoughts_v2';
+    let records = [];
+    let currentFilter = 'all';
+
+    const contentInput = document.getElementById('contentInput');
+    const addBtn = document.getElementById('addBtn');
+    const cardsGrid = document.getElementById('cardsGrid');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const statText = document.getElementById('statText');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const intensityBtns = document.querySelectorAll('.intensity-btn');
+
+    function loadRecords() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      records = stored ? (() => { try { return JSON.parse(stored); } catch { return []; } })() : [];
+    }
+
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function getTimeString() {
+      const d = new Date();
+      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+
+    function addRecord(text, intensity) {
+      records.push({
+        text: text,
+        intensity: intensity,
+        time: getTimeString(),
+        done: false
+      });
+      saveRecords();
+      renderCards();
+      contentInput.value = '';
+      contentInput.focus();
+    }
+
+    function toggleDone(index) {
+      records[index].done = !records[index].done;
+      saveRecords();
+      renderCards();
+    }
+
+    function deleteRecord(index) {
+      records.splice(index, 1);
+      saveRecords();
+      renderCards();
+    }
+
+    function clearAll() {
+      if (!confirm('确定清空全部念头吗？此操作不可恢复。')) return;
+      records = [];
+      saveRecords();
+      renderCards();
+    }
+
+    function getFilteredRecords() {
+      if (currentFilter === 'done') return records.filter(r => r.done);
+      if (currentFilter === 'undone') return records.filter(r => !r.done);
+      return records;
+    }
+
+    function renderCards() {
+      const filtered = getFilteredRecords();
+      const reversed = [...filtered].reverse();
+
+      if (filtered.length === 0) {
+        cardsGrid.innerHTML = '<div class="empty-state">还没有念头</div>';
+      } else {
+        cardsGrid.innerHTML = reversed.map((rec) => {
+          const originalIndex = records.indexOf(rec);
+          return `
+            <div class="mini-card ${rec.done ? 'done' : ''}" data-index="${originalIndex}">
+              <button class="card-delete" data-index="${originalIndex}">✕</button>
+              <div class="card-text">${escapeHtml(rec.text)}</div>
+              <div class="card-footer">
+                <span class="card-time">${rec.time}</span>
+                <span class="card-intensity">${rec.intensity}</span>
+              </div>
+              <span class="card-status ${rec.done ? 'done-status' : 'undone'}" data-index="${originalIndex}">${rec.done ? '已实行' : '未实行'}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 绑定事件
+      document.querySelectorAll('.card-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteRecord(parseInt(btn.dataset.index));
+        });
+      });
+      document.querySelectorAll('.card-status').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleDone(parseInt(btn.dataset.index));
+        });
+      });
+
+      updateStats();
+    }
+
+    function updateStats() {
+      const total = records.length;
+      const done = records.filter(r => r.done).length;
+      const undone = total - done;
+      statText.textContent = `总${total} · 未${undone} · 已${done}`;
+    }
+
+    function exportJSON() {
+      if (records.length === 0) { alert('没有记录可导出'); return; }
+      const jsonStr = JSON.stringify(records, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `念头记录_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // 事件绑定
+    addBtn.addEventListener('click', () => {
+      const text = contentInput.value.trim();
+      if (!text) { alert('请输入念头'); return; }
+      addRecord(text, 3);
+    });
+
+    contentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const text = contentInput.value.trim();
+        if (!text) { alert('请输入念头'); return; }
+        addRecord(text, 3);
+      }
+    });
+
+    intensityBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = contentInput.value.trim();
+        if (!text) { alert('请输入念头'); return; }
+        addRecord(text, parseInt(btn.dataset.intensity));
+      });
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderCards();
+      });
+    });
+
+    exportBtn.addEventListener('click', exportJSON);
+    clearAllBtn.addEventListener('click', clearAll);
+
+    loadRecords();
+    renderCards();
+  })();
+</script>
+</body>
+</html>

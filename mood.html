@@ -95,20 +95,57 @@
       word-break: break-word;
       position: relative;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: transform 0.3s;
+      transform-style: preserve-3d;
     }
-    .mini-card .card-text {
+    .mini-card.flipped {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      backface-visibility: hidden;
+    }
+    .card-front {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .card-back {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #f0f7ff;
+      border-radius: 0.5rem;
+      padding: 0.4rem;
+      font-size: 0.62rem;
+      color: #333;
+      line-height: 1.4;
+      overflow-y: auto;
+      transform: rotateY(180deg);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .mini-card.flipped .card-front {
+      display: none;
+    }
+    .mini-card.flipped .card-back {
+      display: flex;
+    }
+    .card-text {
       font-size: 0.68rem;
       line-height: 1.35;
       flex: 1;
     }
-    .mini-card .card-footer {
+    .card-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.6rem;
       color: #aaa;
     }
-    .mini-card .card-intensity {
+    .card-intensity {
       font-weight: 700;
       color: #1a1a1a;
       background: #eee;
@@ -116,7 +153,7 @@
       padding: 0.05rem 0.35rem;
       font-size: 0.6rem;
     }
-    .mini-card .card-delete {
+    .card-delete {
       position: absolute;
       top: 2px;
       right: 4px;
@@ -127,20 +164,40 @@
       cursor: pointer;
       padding: 0;
       line-height: 1;
+      z-index: 2;
+    }
+    .api-row {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .api-row input {
+      flex: 1;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.7rem;
+      outline: none;
+    }
+    .btn {
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      padding: 0.3rem 0.8rem;
+      border-radius: 1.5rem;
+      font-weight: 600;
+      font-size: 0.7rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-outline {
+      background: white;
+      color: #1a1a1a;
+      border: 1px solid #1a1a1a;
     }
     .export-row {
       display: flex;
       justify-content: flex-end;
-    }
-    .export-btn {
-      background: #1a1a1a;
-      color: white;
-      border: none;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      font-weight: 600;
-      font-size: 0.7rem;
-      cursor: pointer;
     }
     .empty-state {
       text-align: center;
@@ -148,6 +205,12 @@
       padding: 1.5rem;
       font-size: 0.75rem;
       grid-column: 1 / -1;
+    }
+    .status {
+      font-size: 0.65rem;
+      color: #888;
+      text-align: center;
+      min-height: 1rem;
     }
   </style>
 </head>
@@ -164,23 +227,48 @@
     <button class="intensity-btn" data-intensity="4">4</button>
     <button class="intensity-btn" data-intensity="5">5</button>
   </div>
+  <div class="api-row">
+    <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...)">
+    <button class="btn" id="saveApiBtn">保存Key</button>
+  </div>
+  <div class="status" id="statusMsg"></div>
   <div class="cards-grid" id="cardsGrid">
     <div class="empty-state">还没有卡片</div>
   </div>
   <div class="export-row">
-    <button class="export-btn" id="exportBtn">📤 导出</button>
+    <button class="btn btn-outline" id="exportBtn">导出</button>
   </div>
 </div>
 
 <script>
   (function() {
-    const STORAGE_KEY = 'mini_emotion_cards';
+    const STORAGE_KEY = 'mini_emotion_cards_v2';
+    const API_KEY_STORAGE = 'deepseek_api_key';
     let records = [];
+    let apiKey = '';
 
     const contentInput = document.getElementById('contentInput');
     const intensityBtns = document.querySelectorAll('.intensity-btn');
     const cardsGrid = document.getElementById('cardsGrid');
     const exportBtn = document.getElementById('exportBtn');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const saveApiBtn = document.getElementById('saveApiBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    // 加载API Key
+    apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
+    if (apiKey) apiKeyInput.value = apiKey;
+
+    // 保存API Key
+    saveApiBtn.addEventListener('click', () => {
+      const key = apiKeyInput.value.trim();
+      if (key) {
+        localStorage.setItem(API_KEY_STORAGE, key);
+        apiKey = key;
+        statusMsg.textContent = 'API Key 已保存';
+        setTimeout(() => { statusMsg.textContent = ''; }, 2000);
+      }
+    });
 
     function loadRecords() {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -196,6 +284,85 @@
       return `${d.getMonth()+1}/${d.getDate()}`;
     }
 
+    // 调用DeepSeek API生成评价
+    async function generateComment(text, intensity) {
+      if (!apiKey) return null;
+      
+      const styles = [
+        '请用撒娇卖萌的语气给一句回复',
+        '请用幽默调侃的语气给一句回复',
+        '请用温柔共情的语气给一句安慰或鼓励',
+        '请像一个老朋友一样东拉西扯一句',
+        '请用一句话点评这种情绪，带点哲理',
+        '请用一个可爱的比喻来形容这种情绪',
+        '请假装你是一个会说话的小动物，给一句回应'
+      ];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+      
+      const prompt = `用户记录了一条情绪：\n内容：${text}\n强度：${intensity}/5\n\n${randomStyle}。要求：\n1. 必须与用户输入的内容有关\n2. 不超过40个字\n3. 不要说"好的"或"明白了"之类的废话，直接输出回复内容`;
+
+      try {
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.9,
+            max_tokens: 100
+          })
+        });
+        if (!resp.ok) return null;
+        const json = await resp.json();
+        return json.choices[0].message.content.trim();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function addRecord(text, intensity) {
+      const record = {
+        text: text,
+        intensity: intensity,
+        date: getToday(),
+        comment: null // 初始无评价
+      };
+      
+      records.push(record);
+      
+      // 尝试获取AI评价
+      if (apiKey) {
+        statusMsg.textContent = 'AI正在回应...';
+        const comment = await generateComment(text, intensity);
+        if (comment) {
+          record.comment = comment;
+        }
+        statusMsg.textContent = comment ? '' : 'AI回应失败，卡片已保存';
+      }
+      
+      saveRecords();
+      renderCards();
+      contentInput.value = '';
+      contentInput.focus();
+      setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+    }
+
+    function deleteRecord(index) {
+      records.splice(index, 1);
+      saveRecords();
+      renderCards();
+    }
+
+    function flipCard(index) {
+      const card = document.querySelector(`.mini-card[data-index="${index}"]`);
+      if (card) {
+        card.classList.toggle('flipped');
+      }
+    }
+
     function renderCards() {
       if (records.length === 0) {
         cardsGrid.innerHTML = '<div class="empty-state">还没有卡片</div>';
@@ -207,36 +374,34 @@
         const originalIndex = records.length - 1 - i;
         const card = document.createElement('div');
         card.className = 'mini-card';
+        card.setAttribute('data-index', originalIndex);
         card.innerHTML = `
           <button class="card-delete" data-index="${originalIndex}">✕</button>
-          <div class="card-text">${escapeHtml(rec.text)}</div>
-          <div class="card-footer">
-            <span>${rec.date}</span>
-            <span class="card-intensity">${rec.intensity}</span>
+          <div class="card-front">
+            <div class="card-text">${escapeHtml(rec.text)}</div>
+            <div class="card-footer">
+              <span>${rec.date}</span>
+              <span class="card-intensity">${rec.intensity}</span>
+            </div>
+          </div>
+          <div class="card-back">
+            ${rec.comment ? escapeHtml(rec.comment) : '暂无AI评价<br><small>点击卡片翻转</small>'}
           </div>
         `;
+        
+        // 点击删除按钮
         card.querySelector('.card-delete').addEventListener('click', (e) => {
           e.stopPropagation();
           deleteRecord(originalIndex);
         });
+        
+        // 点击卡片翻转
+        card.addEventListener('click', () => {
+          flipCard(originalIndex);
+        });
+        
         cardsGrid.appendChild(card);
       });
-    }
-
-    function addRecord(text, intensity) {
-      records.push({
-        text: text,
-        intensity: intensity,
-        date: getToday()
-      });
-      saveRecords();
-      renderCards();
-    }
-
-    function deleteRecord(index) {
-      records.splice(index, 1);
-      saveRecords();
-      renderCards();
     }
 
     intensityBtns.forEach(btn => {
@@ -244,8 +409,6 @@
         const text = contentInput.value.trim();
         if (!text) { alert('请输入内容'); return; }
         addRecord(text, parseInt(btn.dataset.intensity));
-        contentInput.value = '';
-        contentInput.focus();
       });
     });
 
@@ -255,8 +418,6 @@
         const text = contentInput.value.trim();
         if (!text) { alert('请输入内容'); return; }
         addRecord(text, 3);
-        contentInput.value = '';
-        contentInput.focus();
       }
     });
 

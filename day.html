@@ -20,6 +20,10 @@
         .grid-choices button { background: white; border: 2px solid #1a1a1a; border-radius: 1.2rem; padding: 0.8rem 0.3rem; font-weight: 700; font-size: 0.85rem; color: #1a1a1a; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; display: flex; align-items: center; justify-content: center; text-align: center; word-break: break-word; }
         .grid-choices button:active { background: #1a1a1a; color: white; }
         .cancel-btn { background: #f0f0f0; border: none; border-radius: 2rem; padding: 0.7rem; font-weight: 600; color: #555; cursor: pointer; text-align: center; margin-top: 0.3rem; }
+        .month-nav { display: flex; gap: 0.5rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .month-nav button { background: #f0f0f0; border: none; padding: 0.3rem 1rem; border-radius: 1.5rem; font-size: 0.8rem; cursor: pointer; font-weight: 600; color: #555; }
+        .month-nav button:active { background: #1a1a1a; color: white; }
+        .month-nav span { font-weight: 600; font-size: 0.9rem; color: #1a1a1a; }
         .table-wrapper { overflow-x: auto; width: 100%; border: 1px solid #e0e0e0; border-radius: 1.2rem; background: #fafafa; }
         table { width: 100%; border-collapse: collapse; min-width: 650px; font-size: 0.8rem; table-layout: auto; }
         th, td { border: 1px solid #ddd; padding: 0.5rem 0.3rem; text-align: left; vertical-align: top; background: white; }
@@ -48,6 +52,9 @@
         .export-single { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
         .export-single select, .export-single input { padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 0.5rem; border: 1px solid #ccc; }
         .export-single button { padding: 0.3rem 0.7rem; font-size: 0.65rem; border-radius: 1rem; border: 1px solid #aaa; background: white; cursor: pointer; white-space: nowrap; font-weight: 600; }
+        .preview-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 300; display: flex; justify-content: center; align-items: center; }
+        .preview-box { background: white; border-radius: 1.5rem; padding: 1.5rem 1rem; width: 95%; max-width: 600px; max-height: 80vh; overflow-y: auto; white-space: pre-wrap; font-size: 0.8rem; line-height: 1.6; position: relative; }
+        .preview-close { position: absolute; top: 0.5rem; right: 1rem; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #999; }
         @media (max-width: 500px) { .app-container { padding: 1rem 0.8rem; } th, td { padding: 0.4rem 0.2rem; font-size: 0.7rem; } }
     </style>
 </head>
@@ -56,17 +63,24 @@
     <h1>每日记录 · 十一项追踪</h1>
     <div class="input-area"><input type="text" id="contentInput" placeholder="输入内容，点击右侧添加..."><button id="addBtn">确认</button></div>
     <div class="category-selector" id="categorySelector"><div class="category-panel"><h3>选择分类</h3><div class="grid-choices" id="categoryGrid"><button data-category="戒烟">1. 戒烟</button><button data-category="鑫康合COPD">2. 鑫康合COPD</button><button data-category="降糖">3. 降糖</button><button data-category="肺动脉高压">4. 肺动脉高压</button><button data-category="EFC17919">5. EFC17919</button><button data-category="B001">6. B001</button><button data-category="海思科COPD关中心">7. 海思科COPD关中心</button><button data-category="海思科支扩关中心">8. 海思科支扩关中心</button><button data-category="康诺亚哮喘">9. 康诺亚哮喘</button><button data-category="公司">10. 公司</button><button data-category="中心">11. 中心</button></div><button class="cancel-btn" id="cancelCategoryBtn">取消</button></div></div>
+    
+    <!-- 月份导航 -->
+    <div class="month-nav">
+        <button id="prevMonthBtn">◀</button>
+        <span id="currentMonthLabel"></span>
+        <button id="nextMonthBtn">▶</button>
+        <button id="todayMonthBtn" style="font-size:0.7rem;">本月</button>
+    </div>
+
     <div class="table-wrapper"><table id="recordTable"><thead><tr><th>日期</th><th>戒烟</th><th>鑫康合COPD</th><th>降糖</th><th>肺动脉高压</th><th>EFC17919</th><th>B001</th><th>海思科COPD关中心</th><th>海思科支扩关中心</th><th>康诺亚哮喘</th><th>公司</th><th>中心</th></tr></thead><tbody id="tableBody"></tbody></table></div>
 
-    <!-- 导出单列区域 -->
     <div class="export-single">
         <span style="font-size:0.7rem;color:#333;">导出单列：</span>
         <select id="exportColumnSelect"></select>
         <input type="date" id="exportStartDate"> - <input type="date" id="exportEndDate">
-        <button id="exportSingleBtn">导出</button>
+        <button id="exportSingleBtn">导出预览</button>
     </div>
 
-    <!-- API 周报区域 -->
     <div class="api-settings">
         <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...）">
         <div class="date-range"><input type="date" id="startDate"> - <input type="date" id="endDate"></div>
@@ -79,7 +93,7 @@
         <div class="sync-row"><input type="password" id="syncPassword" placeholder="同步密码"><button id="uploadBtn">上传</button><button id="downloadBtn">下载</button><span id="syncStatus" style="font-size:0.65rem;color:#999;"></span></div>
         <span class="reset-link" id="resetConfigLink">重置配置</span>
     </div>
-    <div class="footer-note">每天自动生成一行 · 支持单列导出、AI周报</div>
+    <div class="footer-note">每天自动生成一行 · 按月分页 · 导出预览</div>
 </div>
 <div class="setup-overlay" id="setupOverlay"><div class="setup-panel"><h3 style="text-align:center;">配置 GitHub 同步</h3><input type="text" id="githubUserInput" placeholder="GitHub 用户名"><input type="text" id="repoInput" placeholder="仓库名（如 NBACK）"><input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)"><button id="saveSetupBtn">保存配置</button></div></div>
 
@@ -93,6 +107,7 @@
         let data = {};
         let syncConfig = null;
         let pendingContent = '';
+        let currentYear, currentMonth;
 
         const contentInput = document.getElementById('contentInput');
         const addBtn = document.getElementById('addBtn');
@@ -120,10 +135,33 @@
         const exportStartDate = document.getElementById('exportStartDate');
         const exportEndDate = document.getElementById('exportEndDate');
         const exportSingleBtn = document.getElementById('exportSingleBtn');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const todayMonthBtn = document.getElementById('todayMonthBtn');
+        const currentMonthLabel = document.getElementById('currentMonthLabel');
 
         function getTodayString() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function setCurrentMonth() {
+            const now = new Date();
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth() + 1;
+            updateMonthLabel();
+        }
+
+        function updateMonthLabel() {
+            currentMonthLabel.textContent = `${currentYear}年${currentMonth}月`;
+        }
+
+        function getDatesInMonth(year, month) {
+            const dates = Object.keys(data).filter(d => {
+                const [y, m] = d.split('-').map(Number);
+                return y === year && m === month;
+            }).sort();
+            return dates;
         }
 
         function encrypt(text, password) { let result = ''; for (let i = 0; i < text.length; i++) result += String.fromCharCode(text.charCodeAt(i) ^ password.charCodeAt(i % password.length)); return btoa(result); }
@@ -137,9 +175,16 @@
         function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
         function renderTable() {
-            const dates = Object.keys(data).sort((a,b) => b.localeCompare(a));
+            const dates = getDatesInMonth(currentYear, currentMonth);
+            // 确保今天一定出现（如果今天在当前月）
+            const today = getTodayString();
+            const [ty, tm] = today.split('-').map(Number);
+            if (ty === currentYear && tm === currentMonth && !dates.includes(today)) {
+                dates.push(today);
+                dates.sort();
+            }
             tableBody.innerHTML = '';
-            if (!dates.length) { tableBody.innerHTML = '<tr><td colspan="' + (CATEGORIES.length + 1) + '" style="text-align:center;padding:2rem;color:#999;">暂无记录</td></tr>'; return; }
+            if (!dates.length) { tableBody.innerHTML = '<tr><td colspan="' + (CATEGORIES.length + 1) + '" style="text-align:center;padding:2rem;color:#999;">本月暂无记录</td></tr>'; return; }
             dates.forEach(date => {
                 const row = document.createElement('tr');
                 const dc = document.createElement('td'); dc.className = 'date-col'; dc.textContent = date; row.appendChild(dc);
@@ -188,6 +233,24 @@
             } catch (err) { reportBox.textContent = '生成失败：' + err.message; reportStatus.textContent = ''; }
         }
 
+        function showPreview(text) {
+            const overlay = document.createElement('div');
+            overlay.className = 'preview-overlay';
+            const box = document.createElement('div');
+            box.className = 'preview-box';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'preview-close';
+            closeBtn.textContent = '✕';
+            closeBtn.addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            box.appendChild(closeBtn);
+            const content = document.createElement('div');
+            content.textContent = text;
+            box.appendChild(content);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        }
+
         function exportSingleColumn() {
             const column = exportColumnSelect.value;
             if (!column) { alert('请选择要导出的列'); return; }
@@ -217,13 +280,7 @@
                 text += '\n';
             });
 
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${column}_${start}_${end}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
+            showPreview(text);
         }
 
         function populateExportColumnSelect() {
@@ -266,7 +323,24 @@
         generateReportBtn.addEventListener('click', generateReport);
         exportSingleBtn.addEventListener('click', exportSingleColumn);
 
-        loadSyncConfig(); loadData(); renderTable(); populateExportColumnSelect();
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+            updateMonthLabel();
+            renderTable();
+        });
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+            updateMonthLabel();
+            renderTable();
+        });
+        todayMonthBtn.addEventListener('click', () => {
+            setCurrentMonth();
+            renderTable();
+        });
+
+        loadSyncConfig(); loadData(); setCurrentMonth(); renderTable(); populateExportColumnSelect();
         const today = new Date();
         const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         startDateInput.value = sevenDaysAgo.toISOString().slice(0, 10);

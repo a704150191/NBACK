@@ -64,7 +64,6 @@
     <div class="input-area"><input type="text" id="contentInput" placeholder="输入内容，点击右侧添加..."><button id="addBtn">确认</button></div>
     <div class="category-selector" id="categorySelector"><div class="category-panel"><h3>选择分类</h3><div class="grid-choices" id="categoryGrid"><button data-category="戒烟">1. 戒烟</button><button data-category="鑫康合COPD">2. 鑫康合COPD</button><button data-category="降糖">3. 降糖</button><button data-category="肺动脉高压">4. 肺动脉高压</button><button data-category="EFC17919">5. EFC17919</button><button data-category="B001">6. B001</button><button data-category="海思科COPD关中心">7. 海思科COPD关中心</button><button data-category="海思科支扩关中心">8. 海思科支扩关中心</button><button data-category="康诺亚哮喘">9. 康诺亚哮喘</button><button data-category="公司">10. 公司</button><button data-category="中心">11. 中心</button></div><button class="cancel-btn" id="cancelCategoryBtn">取消</button></div></div>
     
-    <!-- 月份导航 -->
     <div class="month-nav">
         <button id="prevMonthBtn">◀</button>
         <span id="currentMonthLabel"></span>
@@ -81,6 +80,12 @@
         <button id="exportSingleBtn">导出预览</button>
     </div>
 
+    <div class="export-single">
+        <span style="font-size:0.7rem;color:#333;">导出全部：</span>
+        <input type="date" id="exportAllStartDate"> - <input type="date" id="exportAllEndDate">
+        <button id="exportAllBtn">导出预览</button>
+    </div>
+
     <div class="api-settings">
         <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...）">
         <div class="date-range"><input type="date" id="startDate"> - <input type="date" id="endDate"></div>
@@ -93,7 +98,7 @@
         <div class="sync-row"><input type="password" id="syncPassword" placeholder="同步密码"><button id="uploadBtn">上传</button><button id="downloadBtn">下载</button><span id="syncStatus" style="font-size:0.65rem;color:#999;"></span></div>
         <span class="reset-link" id="resetConfigLink">重置配置</span>
     </div>
-    <div class="footer-note">每天自动生成一行 · 按月分页 · 导出预览</div>
+    <div class="footer-note">每天自动生成一行 · 按月分页 · 最新日期在上 · 导出预览</div>
 </div>
 <div class="setup-overlay" id="setupOverlay"><div class="setup-panel"><h3 style="text-align:center;">配置 GitHub 同步</h3><input type="text" id="githubUserInput" placeholder="GitHub 用户名"><input type="text" id="repoInput" placeholder="仓库名（如 NBACK）"><input type="password" id="tokenInput" placeholder="GitHub Token (ghp_开头)"><button id="saveSetupBtn">保存配置</button></div></div>
 
@@ -135,6 +140,9 @@
         const exportStartDate = document.getElementById('exportStartDate');
         const exportEndDate = document.getElementById('exportEndDate');
         const exportSingleBtn = document.getElementById('exportSingleBtn');
+        const exportAllStartDate = document.getElementById('exportAllStartDate');
+        const exportAllEndDate = document.getElementById('exportAllEndDate');
+        const exportAllBtn = document.getElementById('exportAllBtn');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
         const nextMonthBtn = document.getElementById('nextMonthBtn');
         const todayMonthBtn = document.getElementById('todayMonthBtn');
@@ -160,7 +168,7 @@
             const dates = Object.keys(data).filter(d => {
                 const [y, m] = d.split('-').map(Number);
                 return y === year && m === month;
-            }).sort();
+            }).sort((a, b) => b.localeCompare(a)); // 倒序：最新日期在上
             return dates;
         }
 
@@ -180,8 +188,7 @@
             const today = getTodayString();
             const [ty, tm] = today.split('-').map(Number);
             if (ty === currentYear && tm === currentMonth && !dates.includes(today)) {
-                dates.push(today);
-                dates.sort();
+                dates.unshift(today); // 最新日期放最上面
             }
             tableBody.innerHTML = '';
             if (!dates.length) { tableBody.innerHTML = '<tr><td colspan="' + (CATEGORIES.length + 1) + '" style="text-align:center;padding:2rem;color:#999;">本月暂无记录</td></tr>'; return; }
@@ -283,6 +290,38 @@
             showPreview(text);
         }
 
+        function exportAllByDateRange() {
+            const start = exportAllStartDate.value;
+            const end = exportAllEndDate.value;
+            if (!start || !end) { alert('请选择日期范围'); return; }
+
+            let text = `全部记录\n日期范围：${start} 至 ${end}\n${'='.repeat(40)}\n\n`;
+            const sortedDates = Object.keys(data).sort();
+            let hasContent = false;
+            for (const date of sortedDates) {
+                if (date >= start && date <= end) {
+                    let dayContent = '';
+                    CATEGORIES.forEach(cat => {
+                        const items = data[date]?.[cat] || [];
+                        if (items.length > 0) {
+                            dayContent += `  ${cat}：\n`;
+                            items.forEach((item, i) => {
+                                dayContent += `    ${i + 1}. ${item}\n`;
+                            });
+                        }
+                    });
+                    if (dayContent) {
+                        text += `【${date}】\n${dayContent}\n`;
+                        hasContent = true;
+                    }
+                }
+            }
+
+            if (!hasContent) { alert('所选日期范围内没有数据'); return; }
+
+            showPreview(text);
+        }
+
         function populateExportColumnSelect() {
             exportColumnSelect.innerHTML = '<option value="">选择列</option>';
             CATEGORIES.forEach(cat => {
@@ -322,6 +361,7 @@
         resetConfigLink.addEventListener('click', () => { if (confirm('重置？')) resetSyncConfig(); });
         generateReportBtn.addEventListener('click', generateReport);
         exportSingleBtn.addEventListener('click', exportSingleColumn);
+        exportAllBtn.addEventListener('click', exportAllByDateRange);
 
         prevMonthBtn.addEventListener('click', () => {
             currentMonth--;
@@ -347,6 +387,8 @@
         endDateInput.value = today.toISOString().slice(0, 10);
         exportStartDate.value = sevenDaysAgo.toISOString().slice(0, 10);
         exportEndDate.value = today.toISOString().slice(0, 10);
+        exportAllStartDate.value = sevenDaysAgo.toISOString().slice(0, 10);
+        exportAllEndDate.value = today.toISOString().slice(0, 10);
     })();
 </script>
 </body>

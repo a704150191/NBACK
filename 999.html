@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+  <title>闪记卡片</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f0f0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 0.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-container {
+      max-width: 450px;
+      width: 100%;
+      background: #fff;
+      border-radius: 1.2rem;
+      padding: 1rem 0.8rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      text-align: center;
+    }
+
+    /* 快捷标签区 */
+    .quick-tags {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .quick-tag {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 0.3rem 0.8rem;
+      border-radius: 1rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 500;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .quick-tag.active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    /* 输入区 */
+    .input-row {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .input-row input, .input-row select {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 0.8rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.85rem;
+      outline: none;
+      background: #fff;
+      font-family: inherit;
+      min-width: 0;
+    }
+    .input-row input:focus, .input-row select:focus {
+      border-color: #1a1a1a;
+    }
+    .btn {
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 1.2rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: #333; }
+    .btn-outline {
+      background: #fff;
+      color: #1a1a1a;
+      border: 1px solid #aaa;
+    }
+
+    /* 卡片网格 */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+    }
+    .card {
+      background: #fffef9;
+      border: 1px solid #e8e4d9;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.4rem 0.3rem;
+      font-size: 0.7rem;
+      color: #444;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      word-break: break-word;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      border-left: 3px solid #ddd;
+    }
+    .card.urgent { border-left-color: #e07070; }
+    .card-text {
+      font-size: 0.68rem;
+      line-height: 1.35;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.55rem;
+      color: #aaa;
+      margin-top: 0.1rem;
+    }
+    .card-time { color: #bbb; }
+    .card-tags {
+      display: flex;
+      gap: 0.2rem;
+      flex-wrap: wrap;
+    }
+    .card-tag {
+      background: #f0f0f0;
+      padding: 0.05rem 0.35rem;
+      border-radius: 0.3rem;
+      font-size: 0.55rem;
+      font-weight: 600;
+    }
+    .card-delete {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      background: transparent;
+      border: none;
+      color: #ddd;
+      font-size: 0.6rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      z-index: 2;
+    }
+    .card-delete:hover { color: #c55; }
+
+    .empty-state {
+      text-align: center;
+      color: #ccc;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      grid-column: 1 / -1;
+    }
+
+    /* 患者/访视编辑弹窗 */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .dialog {
+      background: #fff;
+      border-radius: 1.2rem;
+      padding: 1.2rem 1rem;
+      width: 90%;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .dialog h3 { font-size: 1rem; text-align: center; }
+    .dialog input {
+      border: 1px solid #ccc;
+      border-radius: 0.6rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .dialog-buttons {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+    .manage-row {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .manage-row select {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 0.6rem;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.75rem;
+      outline: none;
+      background: #fff;
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid #ddd;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.4rem;
+      font-size: 0.7rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <h1>闪记卡片</h1>
+
+  <!-- 项目管理 -->
+  <div class="quick-tags" id="projectTags">
+    <span style="font-size:0.7rem;color:#888;">项目：</span>
+    <button class="quick-tag active" data-project="戒烟">戒烟</button>
+    <button class="quick-tag" data-project="EFC">EFC</button>
+    <button class="icon-btn" id="addProjectBtn">+</button>
+  </div>
+
+  <!-- 患者 / 访视 -->
+  <div class="manage-row">
+    <select id="patientSelect">
+      <option value="">选择患者（可选）</option>
+    </select>
+    <select id="visitSelect">
+      <option value="">选择访视（可选）</option>
+    </select>
+    <button class="icon-btn" id="editMetaBtn">编辑</button>
+  </div>
+
+  <!-- 输入区 -->
+  <div class="input-row">
+    <input type="text" id="contentInput" placeholder="记录事项，按回车添加..." autofocus>
+    <button class="btn" id="addBtn">添加</button>
+  </div>
+
+  <!-- 卡片展示区 -->
+  <div class="cards-grid" id="cardsGrid">
+    <div class="empty-state">暂无记录，输入后按回车添加</div>
+  </div>
+</div>
+
+<!-- 编辑患者/访视弹窗 -->
+<div class="overlay" id="editOverlay" style="display:none;">
+  <div class="dialog">
+    <h3>编辑患者 & 访视</h3>
+    <input type="text" id="newPatientInput" placeholder="新增患者名称">
+    <input type="text" id="newVisitInput" placeholder="新增访视名称（如V1、筛选期）">
+    <div class="dialog-buttons">
+      <button class="btn btn-outline" id="closeEditBtn">完成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const STORAGE_KEY = 'flash_cards_v1';
+    const META_KEY = 'flash_meta_v1'; // 存储患者和访视列表
+
+    let records = [];
+    let currentProject = '戒烟';
+    let patients = [];
+    let visits = [];
+
+    // DOM
+    const projectTags = document.getElementById('projectTags');
+    const patientSelect = document.getElementById('patientSelect');
+    const visitSelect = document.getElementById('visitSelect');
+    const contentInput = document.getElementById('contentInput');
+    const addBtn = document.getElementById('addBtn');
+    const cardsGrid = document.getElementById('cardsGrid');
+    const editOverlay = document.getElementById('editOverlay');
+    const newPatientInput = document.getElementById('newPatientInput');
+    const newVisitInput = document.getElementById('newVisitInput');
+    const closeEditBtn = document.getElementById('closeEditBtn');
+    const editMetaBtn = document.getElementById('editMetaBtn');
+    const addProjectBtn = document.getElementById('addProjectBtn');
+
+    // ========== 数据加载 ==========
+    function loadRecords() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      records = stored ? (() => { try { return JSON.parse(stored); } catch { return []; } })() : [];
+    }
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+    function loadMeta() {
+      const stored = localStorage.getItem(META_KEY);
+      if (stored) {
+        try {
+          const meta = JSON.parse(stored);
+          patients = meta.patients || [];
+          visits = meta.visits || [];
+        } catch { patients = []; visits = []; }
+      }
+    }
+    function saveMeta() {
+      localStorage.setItem(META_KEY, JSON.stringify({ patients, visits }));
+    }
+
+    // ========== 渲染 ==========
+    function getNowString() {
+      const d = new Date();
+      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+
+    function renderProjectTags() {
+      // 收集所有出现过的项目
+      const allProjects = new Set(['戒烟', 'EFC']);
+      records.forEach(r => { if (r.project) allProjects.add(r.project); });
+      patients.forEach(p => allProjects.add(p)); // 兼容旧数据
+      visits.forEach(v => allProjects.add(v));
+
+      projectTags.innerHTML = '<span style="font-size:0.7rem;color:#888;">项目：</span>';
+      allProjects.forEach(proj => {
+        if (proj === '戒烟' || proj === 'EFC' || records.some(r => r.project === proj)) {
+          const btn = document.createElement('button');
+          btn.className = 'quick-tag' + (proj === currentProject ? ' active' : '');
+          btn.textContent = proj;
+          btn.dataset.project = proj;
+          btn.addEventListener('click', () => {
+            currentProject = proj;
+            renderProjectTags();
+          });
+          projectTags.appendChild(btn);
+        }
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'icon-btn';
+      addBtn.textContent = '+';
+      addBtn.addEventListener('click', () => {
+        const name = prompt('输入新项目名称：');
+        if (name && name.trim()) {
+          currentProject = name.trim();
+          renderProjectTags();
+        }
+      });
+      projectTags.appendChild(addBtn);
+    }
+
+    function renderSelects() {
+      patientSelect.innerHTML = '<option value="">选择患者（可选）</option>';
+      patients.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        patientSelect.appendChild(opt);
+      });
+      visitSelect.innerHTML = '<option value="">选择访视（可选）</option>';
+      visits.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        visitSelect.appendChild(opt);
+      });
+    }
+
+    function renderCards() {
+      if (records.length === 0) {
+        cardsGrid.innerHTML = '<div class="empty-state">暂无记录，输入后按回车添加</div>';
+        return;
+      }
+      const reversed = [...records].reverse();
+      cardsGrid.innerHTML = reversed.map((rec, i) => {
+        const originalIndex = records.length - 1 - i;
+        const metaParts = [];
+        if (rec.project) metaParts.push(rec.project);
+        if (rec.patient) metaParts.push(rec.patient);
+        if (rec.visit) metaParts.push(rec.visit);
+        return `
+          <div class="card" data-index="${originalIndex}">
+            <button class="card-delete" data-index="${originalIndex}">✕</button>
+            <div class="card-text">${escapeHtml(rec.text)}</div>
+            ${metaParts.length > 0 ? `<div class="card-tags">${metaParts.map(m => `<span class="card-tag">${escapeHtml(m)}</span>`).join('')}</div>` : ''}
+            <div class="card-meta"><span class="card-time">${rec.time}</span></div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.card-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteRecord(parseInt(btn.dataset.index));
+        });
+      });
+    }
+
+    function deleteRecord(index) {
+      records.splice(index, 1);
+      saveRecords();
+      renderCards();
+    }
+
+    // ========== 添加记录 ==========
+    function addRecord() {
+      const text = contentInput.value.trim();
+      if (!text) return;
+
+      records.push({
+        text: text,
+        time: getNowString(),
+        project: currentProject,
+        patient: patientSelect.value,
+        visit: visitSelect.value
+      });
+      saveRecords();
+      renderCards();
+      contentInput.value = '';
+      contentInput.focus();
+    }
+
+    // ========== 事件 ==========
+    addBtn.addEventListener('click', addRecord);
+    contentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addRecord();
+      }
+    });
+
+    editMetaBtn.addEventListener('click', () => {
+      editOverlay.style.display = 'flex';
+      newPatientInput.focus();
+    });
+    closeEditBtn.addEventListener('click', () => {
+      const newPatient = newPatientInput.value.trim();
+      const newVisit = newVisitInput.value.trim();
+      if (newPatient && !patients.includes(newPatient)) {
+        patients.push(newPatient);
+      }
+      if (newVisit && !visits.includes(newVisit)) {
+        visits.push(newVisit);
+      }
+      saveMeta();
+      renderSelects();
+      newPatientInput.value = '';
+      newVisitInput.value = '';
+      editOverlay.style.display = 'none';
+    });
+    editOverlay.addEventListener('click', (e) => {
+      if (e.target === editOverlay) {
+        closeEditBtn.click();
+      }
+    });
+
+    function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ========== 初始化 ==========
+    loadRecords();
+    loadMeta();
+    renderProjectTags();
+    renderSelects();
+    renderCards();
+    contentInput.focus();
+  })();
+</script>
+</body>
+</html>

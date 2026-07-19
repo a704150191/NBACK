@@ -27,6 +27,12 @@
       letter-spacing: 2px; padding: 0.3rem 0;
     }
 
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: #2c2c2c;
+      border-bottom: 2px solid #e8e8e8; padding-bottom: 0.4rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
     /* 添加目标区域 */
     .add-goal-area {
       background: #fff; border-radius: 1rem; padding: 0.8rem 1rem;
@@ -59,6 +65,11 @@
     .btn-dark:active { background: #555; }
     .btn-outline { background: #fff; color: #2c2c2c; border: 1px solid #bbb; }
     .btn-outline:active { background: #f0f0f0; }
+    .btn-sm {
+      padding: 0.2rem 0.6rem; font-size: 0.65rem; border-radius: 1rem;
+    }
+    .btn-green { background: #27ae60; color: #fff; }
+    .btn-green:active { background: #1e8449; }
 
     /* 分类区块 */
     .category-section {
@@ -112,6 +123,32 @@
       text-align: center; color: #bbb; padding: 1.5rem; font-size: 0.8rem;
     }
 
+    /* 监控库 */
+    .monitor-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .monitor-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.8rem; background: #fff; border: 1px solid #e8e8e8;
+      border-radius: 0.8rem;
+    }
+    .monitor-item .goal-title { flex: 1; font-size: 0.75rem; }
+    .monitor-days {
+      font-size: 0.65rem; color: #888; white-space: nowrap;
+      min-width: 3rem; text-align: center;
+    }
+    .monitor-days.warning { color: #e67e22; font-weight: 600; }
+    .monitor-days.danger { color: #c0392b; font-weight: 600; }
+    .monitor-encourage {
+      font-size: 0.65rem; color: #555; font-style: italic;
+      padding: 0.2rem 0.5rem; background: #f9f9f9; border-radius: 0.5rem;
+      flex: 1; text-align: left;
+    }
+    .monitor-touch {
+      background: transparent; border: none; color: #27ae60; font-size: 0.7rem;
+      cursor: pointer; white-space: nowrap; padding: 0.2rem 0.4rem;
+      font-weight: 600;
+    }
+    .monitor-touch:active { color: #1e8449; }
+
     /* API配置 */
     .api-config {
       background: #fff; border-radius: 1rem; padding: 0.6rem 1rem;
@@ -125,7 +162,7 @@
     .api-config input:focus { border-color: #888; }
     .status-msg { font-size: 0.7rem; color: #888; text-align: center; min-height: 1rem; }
 
-    /* 详情弹窗 */
+    /* 详情弹窗 / 完成弹窗 */
     .overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.5); z-index: 200;
@@ -165,6 +202,7 @@
       .app-container { padding: 0.3rem; }
       .add-goal-area { flex-direction: column; align-items: stretch; }
       .goal-item { padding: 0.5rem 0.7rem; }
+      .monitor-item { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -196,6 +234,15 @@
   <!-- 目标列表（按分数分类） -->
   <div id="categoriesContainer"></div>
 
+  <!-- 目标监控库 -->
+  <div class="section-title" style="margin-top:0.5rem;">
+    <span>目标监控库</span>
+    <span style="font-size:0.65rem;color:#aaa;">搁置提醒</span>
+  </div>
+  <div class="monitor-list" id="monitorList">
+    <div class="empty-hint">暂无目标需要监控</div>
+  </div>
+
   <div class="status-msg" id="statusMsg"></div>
 </div>
 
@@ -204,9 +251,14 @@
   <div class="detail-panel" id="detailPanel"></div>
 </div>
 
+<!-- 完成弹窗 -->
+<div class="overlay" id="completeOverlay" style="display:none;">
+  <div class="detail-panel" id="completePanel"></div>
+</div>
+
 <script>
 (function() {
-  const STORAGE_KEY = 'life_plan_v3';
+  const STORAGE_KEY = 'life_plan_v4';
   const API_KEY_STORAGE = 'deepseek_api_key';
 
   let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
@@ -218,9 +270,12 @@
   const newGoalInput = document.getElementById('newGoalInput');
   const addGoalBtn = document.getElementById('addGoalBtn');
   const categoriesContainer = document.getElementById('categoriesContainer');
+  const monitorList = document.getElementById('monitorList');
   const statusMsg = document.getElementById('statusMsg');
   const detailOverlay = document.getElementById('detailOverlay');
   const detailPanel = document.getElementById('detailPanel');
+  const completeOverlay = document.getElementById('completeOverlay');
+  const completePanel = document.getElementById('completePanel');
 
   let selectedScore = 4;
 
@@ -250,6 +305,17 @@
     else { goals = []; }
   }
 
+  // 更新目标活跃时间
+  function touchGoal(id) {
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+    goal.lastActive = Date.now();
+    // 清除鼓励语缓存，让下次触发重新生成
+    if (goal.encourageCache) delete goal.encourageCache;
+    saveAll();
+    renderAll();
+  }
+
   // 添加目标
   function addGoal() {
     const title = newGoalInput.value.trim();
@@ -259,11 +325,13 @@
       title: title,
       score: selectedScore,
       step1: '', step2: '', deadline: '',
-      prep: { '资金': '', '设备': '', '学习': '', '攻略': '' }
+      prep: { '资金': '', '设备': '', '学习': '', '攻略': '' },
+      lastActive: Date.now(),
+      encourageCache: null
     });
     saveAll();
     newGoalInput.value = '';
-    renderCategories();
+    renderAll();
     statusMsg.textContent = '目标已添加';
     setTimeout(() => statusMsg.textContent = '', 2000);
   }
@@ -276,12 +344,97 @@
     if (!confirm('确定删除此目标？')) return;
     goals = goals.filter(g => g.id !== id);
     saveAll();
-    renderCategories();
+    renderAll();
+  }
+
+  // 计算搁置天数
+  function getStaleDays(goal) {
+    if (!goal.lastActive) return 0;
+    const diff = Date.now() - goal.lastActive;
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+
+  // 根据搁置天数获取鼓励语触发阈值和文案
+  function getEncourageLevel(days) {
+    if (days >= 30) return { level: 'danger', text: '已经搁置一个月了...要不要花5分钟重新开始？哪怕只做一点点也是进步。' };
+    if (days >= 14) return { level: 'warning', text: '两周没碰这个目标了哦，是不是遇到什么困难了？说出来也许能帮你找到突破口。' };
+    if (days >= 7) return { level: 'warning', text: '一周过去了，还记得当初为什么要做这件事吗？看看第一步，或许没那么难。' };
+    if (days >= 3) return { level: 'normal', text: '有几天没碰了，今天是不是可以迈出一小步？' };
+    return null;
+  }
+
+  // AI生成鼓励语
+  async function generateEncourage(goal) {
+    if (!apiKey) return null;
+    const days = getStaleDays(goal);
+    try {
+      const resp = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: `用户有一个目标："${goal.title}"，已经搁置了${days}天。请用温暖、鼓励的语气，一句话提醒用户重拾这个目标。不超过40字。` }],
+          temperature: 0.8, max_tokens: 100
+        })
+      });
+      if (!resp.ok) return null;
+      const json = await resp.json();
+      return json.choices[0].message.content.trim();
+    } catch(e) { return null; }
+  }
+
+  // 渲染监控库
+  async function renderMonitor() {
+    // 只显示有搁置的目标（超过1天）
+    const staleGoals = goals.filter(g => getStaleDays(g) >= 1).sort((a,b) => getStaleDays(b) - getStaleDays(a));
+
+    if (staleGoals.length === 0) {
+      monitorList.innerHTML = '<div class="empty-hint">所有目标都在活跃中，继续保持！</div>';
+      return;
+    }
+
+    monitorList.innerHTML = staleGoals.map(g => {
+      const days = getStaleDays(g);
+      const level = getEncourageLevel(days);
+      return `
+        <div class="monitor-item" id="monitor-${g.id}">
+          <div class="goal-title">${escapeHtml(g.title)}</div>
+          <div class="monitor-days ${level?.level === 'danger' ? 'danger' : level?.level === 'warning' ? 'warning' : ''}">${days}天</div>
+          <div class="monitor-encourage" id="encourage-${g.id}">
+            ${g.encourageCache ? escapeHtml(g.encourageCache) : (level?.text || '')}
+          </div>
+          <button class="monitor-touch" data-id="${g.id}">碰一下</button>
+        </div>
+      `;
+    }).join('');
+
+    // 绑定“碰一下”按钮
+    document.querySelectorAll('.monitor-touch').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        touchGoal(btn.dataset.id);
+        statusMsg.textContent = '已标记为活跃';
+        setTimeout(() => statusMsg.textContent = '', 2000);
+      });
+    });
+
+    // 为没有缓存鼓励语的目标生成AI鼓励语
+    for (const g of staleGoals) {
+      const days = getStaleDays(g);
+      if (days >= 3 && !g.encourageCache) {
+        const encourage = await generateEncourage(g);
+        if (encourage) {
+          g.encourageCache = encourage;
+          const el = document.getElementById('encourage-' + g.id);
+          if (el) el.textContent = encourage;
+        }
+      }
+    }
+    saveAll();
   }
 
   // 渲染分类列表
   function renderCategories() {
-    // 按分数分组
     const high = goals.filter(g => g.score >= 4);
     const medium = goals.filter(g => g.score === 3);
     const low = goals.filter(g => g.score <= 2);
@@ -332,6 +485,11 @@
     });
   }
 
+  function renderAll() {
+    renderCategories();
+    renderMonitor();
+  }
+
   // 折叠分类
   window.toggleCat = function(bodyId, headerEl) {
     const body = document.getElementById(bodyId);
@@ -349,6 +507,10 @@
       <h3>${escapeHtml(goal.title)} <span class="goal-score score-${goal.score >= 4 ? 'high' : goal.score === 3 ? 'medium' : 'low'}" style="display:inline-flex;">${goal.score}</span></h3>
       <label style="font-size:0.75rem;font-weight:600;">最近一步行动</label>
       <textarea id="editStep1" placeholder="AI分析后可自动填充...">${escapeHtml(goal.step1 || '')}</textarea>
+      <div style="display:flex;gap:0.4rem;align-items:center;">
+        <button class="btn btn-green btn-sm" id="completeStep1Btn">✅ 标记完成</button>
+        <span style="font-size:0.65rem;color:#888;">提交完成情况后AI会更新下一步</span>
+      </div>
       <label style="font-size:0.75rem;font-weight:600;">下一步行动</label>
       <textarea id="editStep2" placeholder="AI分析后可自动填充...">${escapeHtml(goal.step2 || '')}</textarea>
       <label style="font-size:0.75rem;font-weight:600;">预计完成日期</label>
@@ -379,8 +541,8 @@
       ['资金','设备','学习','攻略'].forEach(k => {
         goal.prep[k] = document.getElementById('editPrep_' + k).value;
       });
-      saveAll();
-      renderCategories();
+      touchGoal(goal.id);
+      renderAll();
       detailOverlay.style.display = 'none';
     });
 
@@ -388,26 +550,11 @@
     document.getElementById('aiAnalyzeDetailBtn').addEventListener('click', async () => {
       if (!apiKey) { alert('请先保存API Key'); return; }
       const btn = document.getElementById('aiAnalyzeDetailBtn');
-      btn.disabled = true;
-      btn.textContent = '分析中...';
-
-      const prompt = `你是一个人生规划助手。用户设定了最终目标："${goal.title}"。请分析并返回JSON格式结果：
-{
-  "step1": "最近一步行动（一句话，不超过50字）",
-  "step2": "下一步行动（一句话，不超过50字）",
-  "prep": {
-    "资金": "需要多少钱，如何筹集",
-    "设备": "需要什么设备或工具",
-    "学习": "需要学习什么技能",
-    "攻略": "需要搜集什么攻略"
-  }
-}
-只输出JSON，不要其他文字。`;
-
+      btn.disabled = true; btn.textContent = '分析中...';
+      const prompt = `你是一个人生规划助手。用户设定了最终目标："${goal.title}"。请分析并返回JSON格式结果：{"step1":"最近一步行动（一句话，不超过50字）","step2":"下一步行动（一句话，不超过50字）","prep":{"资金":"需要多少钱，如何筹集","设备":"需要什么设备或工具","学习":"需要学习什么技能","攻略":"需要搜集什么攻略"}}只输出JSON，不要其他文字。`;
       try {
         const resp = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 800 })
         });
         if (!resp.ok) throw new Error('API错误');
@@ -415,20 +562,19 @@
         const match = json.choices[0].message.content.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('格式错误');
         const result = JSON.parse(match[0]);
-
         if (result.step1) document.getElementById('editStep1').value = result.step1;
         if (result.step2) document.getElementById('editStep2').value = result.step2;
         ['资金','设备','学习','攻略'].forEach(k => {
           if (result.prep && result.prep[k]) document.getElementById('editPrep_' + k).value = result.prep[k];
         });
         statusMsg.textContent = 'AI分析完成';
-      } catch(e) {
-        statusMsg.textContent = '分析失败: ' + e.message;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'AI 分析';
-        setTimeout(() => statusMsg.textContent = '', 3000);
-      }
+      } catch(e) { statusMsg.textContent = '分析失败: ' + e.message; }
+      finally { btn.disabled = false; btn.textContent = 'AI 分析'; setTimeout(() => statusMsg.textContent = '', 3000); }
+    });
+
+    // 标记完成按钮
+    document.getElementById('completeStep1Btn').addEventListener('click', () => {
+      openCompleteDialog(goal);
     });
 
     document.getElementById('closeDetailBtn').addEventListener('click', () => {
@@ -436,13 +582,82 @@
     });
   }
 
+  // 完成弹窗
+  function openCompleteDialog(goal) {
+    completePanel.innerHTML = `
+      <h3>✅ 完成：${escapeHtml(goal.step1 || '最近一步行动')}</h3>
+      <label style="font-size:0.75rem;font-weight:600;">完成情况</label>
+      <textarea id="completeStatus" placeholder="描述一下完成的情况..."></textarea>
+      <label style="font-size:0.75rem;font-weight:600;">遇到的问题</label>
+      <textarea id="completeProblems" placeholder="遇到了什么困难或问题..."></textarea>
+      <div class="detail-row">
+        <button class="btn btn-dark" id="submitCompleteBtn">提交并让AI更新计划</button>
+        <button class="btn btn-outline" id="closeCompleteBtn">取消</button>
+      </div>
+    `;
+
+    completeOverlay.style.display = 'flex';
+
+    document.getElementById('submitCompleteBtn').addEventListener('click', async () => {
+      if (!apiKey) { alert('请先保存API Key'); return; }
+      const btn = document.getElementById('submitCompleteBtn');
+      btn.disabled = true; btn.textContent = 'AI正在更新...';
+
+      const status = document.getElementById('completeStatus').value.trim();
+      const problems = document.getElementById('completeProblems').value.trim();
+
+      // 更新活跃时间
+      touchGoal(goal.id);
+
+      // 让AI生成新的下一步
+      const prompt = `用户完成了目标"${goal.title}"的一步行动："${goal.step1}"。完成情况：${status || '未描述'}。遇到的问题：${problems || '未描述'}。请根据这些反馈，生成新的"下一步行动"（一句话，不超过50字），以及更新"所需准备"中的资金/设备/学习/攻略。返回JSON格式：{"step2":"新的下一步行动","prep":{"资金":"...","设备":"...","学习":"...","攻略":"..."}}只输出JSON。`;
+
+      try {
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 600 })
+        });
+        if (!resp.ok) throw new Error('API错误');
+        const json = await resp.json();
+        const match = json.choices[0].message.content.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('格式错误');
+        const result = JSON.parse(match[0]);
+
+        // 更新目标
+        goal.step1 = goal.step2; // 原来的下一步变成新的最近一步
+        if (result.step2) goal.step2 = result.step2;
+        if (result.prep) {
+          ['资金','设备','学习','攻略'].forEach(k => {
+            if (result.prep[k]) goal.prep[k] = result.prep[k];
+          });
+        }
+        saveAll();
+        renderAll();
+        completeOverlay.style.display = 'none';
+        detailOverlay.style.display = 'none';
+        statusMsg.textContent = '计划已更新，继续前进！';
+        setTimeout(() => statusMsg.textContent = '', 3000);
+      } catch(e) {
+        statusMsg.textContent = '更新失败: ' + e.message;
+        setTimeout(() => statusMsg.textContent = '', 3000);
+      } finally {
+        btn.disabled = false; btn.textContent = '提交并让AI更新计划';
+      }
+    });
+
+    document.getElementById('closeCompleteBtn').addEventListener('click', () => {
+      completeOverlay.style.display = 'none';
+    });
+  }
+
   detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) detailOverlay.style.display = 'none'; });
+  completeOverlay.addEventListener('click', (e) => { if (e.target === completeOverlay) completeOverlay.style.display = 'none'; });
 
   function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   // 初始化
   loadAll();
-  renderCategories();
+  renderAll();
 })();
 </script>
 </body>

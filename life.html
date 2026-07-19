@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5, viewport-fit=cover, apple-mobile-web-app-capable=yes">
+  <title>人生计划 · 目标列表</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f7f6f3;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      padding: 0.8rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-container {
+      max-width: 600px; width: 100%;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    .main-title {
+      text-align: center;
+      font-size: 1.4rem; font-weight: 700; color: #2c2c2c;
+      letter-spacing: 2px; padding: 0.3rem 0;
+    }
+
+    /* 添加目标区域 */
+    .add-goal-area {
+      background: #fff; border-radius: 1rem; padding: 0.8rem 1rem;
+      border: 1px solid #e8e8e8; display: flex; gap: 0.5rem; align-items: center;
+      flex-wrap: wrap;
+    }
+    .add-goal-area input {
+      flex: 1; min-width: 120px; border: 1px solid #ddd; border-radius: 0.6rem;
+      padding: 0.5rem 0.7rem; font-size: 0.8rem; outline: none; background: #fafafa;
+    }
+    .add-goal-area input:focus { border-color: #888; }
+    .score-select {
+      display: flex; gap: 0.2rem; align-items: center;
+    }
+    .score-select span { font-size: 0.7rem; color: #888; white-space: nowrap; }
+    .score-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ddd;
+      background: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      color: #888; transition: 0.15s; display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .score-btn:hover { border-color: #2c2c2c; color: #2c2c2c; }
+    .score-btn.selected { background: #2c2c2c; color: #fff; border-color: #2c2c2c; }
+    .btn {
+      padding: 0.4rem 1rem; border-radius: 1.2rem; font-weight: 600;
+      font-size: 0.75rem; cursor: pointer; white-space: nowrap;
+      border: none; transition: 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-dark { background: #2c2c2c; color: #fff; }
+    .btn-dark:active { background: #555; }
+    .btn-outline { background: #fff; color: #2c2c2c; border: 1px solid #bbb; }
+    .btn-outline:active { background: #f0f0f0; }
+
+    /* 分类区块 */
+    .category-section {
+      background: #fff; border-radius: 1rem; border: 1px solid #e8e8e8;
+      overflow: hidden;
+    }
+    .category-header {
+      padding: 0.7rem 1rem; font-weight: 700; font-size: 0.85rem;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+    }
+    .category-header .arrow {
+      transition: transform 0.25s; font-size: 0.7rem; color: #999;
+    }
+    .category-header .arrow.collapsed { transform: rotate(-90deg); }
+    .category-body {
+      display: flex; flex-direction: column;
+      overflow: hidden; transition: max-height 0.3s ease;
+      max-height: 800px;
+    }
+    .category-body.collapsed { max-height: 0; }
+
+    .goal-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1rem; border-top: 1px solid #f0f0f0;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .goal-item:hover { background: #fafafa; }
+    .goal-item:active { background: #f0f0f0; }
+    .goal-score {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
+    }
+    .score-high { background: #ffe0e0; color: #c0392b; }
+    .score-medium { background: #fff3e0; color: #e67e22; }
+    .score-low { background: #e0f0e8; color: #27ae60; }
+    .goal-title {
+      flex: 1; font-size: 0.8rem; color: #2c2c2c; word-break: break-word;
+    }
+    .goal-meta {
+      font-size: 0.65rem; color: #aaa; white-space: nowrap;
+    }
+    .goal-delete {
+      background: transparent; border: none; color: #ccc; font-size: 0.7rem;
+      cursor: pointer; padding: 0.2rem;
+    }
+    .goal-delete:hover { color: #c0392b; }
+
+    .empty-hint {
+      text-align: center; color: #bbb; padding: 1.5rem; font-size: 0.8rem;
+    }
+
+    /* API配置 */
+    .api-config {
+      background: #fff; border-radius: 1rem; padding: 0.6rem 1rem;
+      border: 1px solid #e8e8e8; display: flex; gap: 0.4rem; align-items: center;
+      flex-wrap: wrap;
+    }
+    .api-config input {
+      flex: 1; min-width: 140px; border: 1px solid #ddd; border-radius: 0.6rem;
+      padding: 0.4rem 0.7rem; font-size: 0.75rem; outline: none; background: #fafafa;
+    }
+    .api-config input:focus { border-color: #888; }
+    .status-msg { font-size: 0.7rem; color: #888; text-align: center; min-height: 1rem; }
+
+    /* 详情弹窗 */
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      display: flex; justify-content: center; align-items: flex-start;
+      overflow-y: auto; padding: 1rem;
+    }
+    .detail-panel {
+      background: #fff; border-radius: 1.2rem; padding: 1.2rem;
+      width: 100%; max-width: 550px; display: flex; flex-direction: column; gap: 0.8rem;
+      margin: 1rem 0;
+    }
+    .detail-panel h3 { font-size: 1rem; color: #2c2c2c; text-align: center; }
+    .detail-panel textarea, .detail-panel input[type="date"] {
+      width: 100%; border: 1px solid #e8e8e8; border-radius: 0.5rem;
+      padding: 0.5rem 0.7rem; font-size: 0.8rem; outline: none; resize: vertical;
+      font-family: inherit; background: #fafafa; color: #333;
+    }
+    .detail-panel textarea:focus, .detail-panel input:focus { border-color: #aaa; background: #fff; }
+    .detail-panel input[type="date"] { padding: 0.4rem 0.7rem; }
+    .detail-row {
+      display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;
+    }
+    .sub-item {
+      display: flex; gap: 0.3rem; align-items: flex-start;
+      padding: 0.2rem 0; background: #f9f9f9; border-radius: 0.5rem; padding: 0.3rem 0.5rem;
+    }
+    .sub-item-label {
+      font-weight: 600; font-size: 0.7rem; color: #555; min-width: 2.5rem; padding-top: 0.3rem;
+    }
+    .sub-item textarea {
+      flex: 1; border: 1px solid #e8e8e8; border-radius: 0.4rem;
+      padding: 0.3rem 0.5rem; font-size: 0.75rem; outline: none; resize: vertical;
+      font-family: inherit; background: #fff; min-height: 1.4rem; line-height: 1.4;
+    }
+
+    @media (max-width: 420px) {
+      .app-container { padding: 0.3rem; }
+      .add-goal-area { flex-direction: column; align-items: stretch; }
+      .goal-item { padding: 0.5rem 0.7rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="main-title">人生计划 · 目标列表</div>
+
+  <!-- API Key -->
+  <div class="api-config">
+    <input type="password" id="apiKeyInput" placeholder="DeepSeek API Key (sk-...)">
+    <button class="btn btn-dark" id="saveApiBtn">保存Key</button>
+    <span style="font-size:0.65rem;color:#aaa;" id="apiStatus"></span>
+  </div>
+
+  <!-- 添加目标 -->
+  <div class="add-goal-area">
+    <input type="text" id="newGoalInput" placeholder="输入新目标...">
+    <div class="score-select">
+      <span>优先级：</span>
+      <button class="score-btn" data-score="1">1</button>
+      <button class="score-btn" data-score="2">2</button>
+      <button class="score-btn" data-score="3">3</button>
+      <button class="score-btn selected" data-score="4">4</button>
+      <button class="score-btn" data-score="5">5</button>
+    </div>
+    <button class="btn btn-dark" id="addGoalBtn">添加目标</button>
+  </div>
+
+  <!-- 目标列表（按分数分类） -->
+  <div id="categoriesContainer"></div>
+
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="overlay" id="detailOverlay" style="display:none;">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'life_plan_v3';
+  const API_KEY_STORAGE = 'deepseek_api_key';
+
+  let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
+  let goals = [];
+
+  // DOM
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const apiStatus = document.getElementById('apiStatus');
+  const newGoalInput = document.getElementById('newGoalInput');
+  const addGoalBtn = document.getElementById('addGoalBtn');
+  const categoriesContainer = document.getElementById('categoriesContainer');
+  const statusMsg = document.getElementById('statusMsg');
+  const detailOverlay = document.getElementById('detailOverlay');
+  const detailPanel = document.getElementById('detailPanel');
+
+  let selectedScore = 4;
+
+  if (apiKey) { apiKeyInput.value = apiKey; apiStatus.textContent = '已保存'; }
+
+  document.getElementById('saveApiBtn').addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) { localStorage.setItem(API_KEY_STORAGE, key); apiKey = key; apiStatus.textContent = '已保存 ✓'; setTimeout(() => apiStatus.textContent = '', 2000); }
+  });
+
+  // 分数选择
+  document.querySelectorAll('.score-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedScore = parseInt(btn.dataset.score);
+    });
+  });
+
+  function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); }
+
+  function loadAll() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) { try { goals = JSON.parse(stored); } catch(e) { goals = []; } }
+    else { goals = []; }
+  }
+
+  // 添加目标
+  function addGoal() {
+    const title = newGoalInput.value.trim();
+    if (!title) { statusMsg.textContent = '请输入目标内容'; return; }
+    goals.push({
+      id: genId(),
+      title: title,
+      score: selectedScore,
+      step1: '', step2: '', deadline: '',
+      prep: { '资金': '', '设备': '', '学习': '', '攻略': '' }
+    });
+    saveAll();
+    newGoalInput.value = '';
+    renderCategories();
+    statusMsg.textContent = '目标已添加';
+    setTimeout(() => statusMsg.textContent = '', 2000);
+  }
+
+  addGoalBtn.addEventListener('click', addGoal);
+  newGoalInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addGoal(); });
+
+  // 删除目标
+  function deleteGoal(id) {
+    if (!confirm('确定删除此目标？')) return;
+    goals = goals.filter(g => g.id !== id);
+    saveAll();
+    renderCategories();
+  }
+
+  // 渲染分类列表
+  function renderCategories() {
+    // 按分数分组
+    const high = goals.filter(g => g.score >= 4);
+    const medium = goals.filter(g => g.score === 3);
+    const low = goals.filter(g => g.score <= 2);
+
+    const categories = [
+      { label: '高优先级 (4-5分)', data: high, colorClass: 'score-high', bgColor: '#ffe0e0' },
+      { label: '中等优先级 (3分)', data: medium, colorClass: 'score-medium', bgColor: '#fff3e0' },
+      { label: '低优先级 (1-2分)', data: low, colorClass: 'score-low', bgColor: '#e0f0e8' }
+    ];
+
+    categoriesContainer.innerHTML = categories.map((cat, catIdx) => {
+      const bodyId = 'catBody' + catIdx;
+      return `
+        <div class="category-section">
+          <div class="category-header" style="background:${cat.bgColor};" onclick="toggleCat('${bodyId}', this)">
+            <span>${cat.label} (${cat.data.length})</span>
+            <span class="arrow" id="arrow${catIdx}">▼</span>
+          </div>
+          <div class="category-body" id="${bodyId}">
+            ${cat.data.length === 0 ? '<div class="empty-hint">暂无目标</div>' : 
+              cat.data.map(g => `
+                <div class="goal-item">
+                  <div class="goal-score ${cat.colorClass}">${g.score}</div>
+                  <div class="goal-title">${escapeHtml(g.title)}</div>
+                  <div class="goal-meta">${g.step1 ? '已分析' : '待分析'}</div>
+                  <button class="goal-delete" data-id="${g.id}">✕</button>
+                </div>
+              `).join('')
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 绑定点击事件
+    document.querySelectorAll('.goal-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.classList.contains('goal-delete')) return;
+        const id = item.querySelector('.goal-delete').dataset.id;
+        openDetail(id);
+      });
+    });
+    document.querySelectorAll('.goal-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteGoal(btn.dataset.id);
+      });
+    });
+  }
+
+  // 折叠分类
+  window.toggleCat = function(bodyId, headerEl) {
+    const body = document.getElementById(bodyId);
+    const arrow = headerEl.querySelector('.arrow');
+    body.classList.toggle('collapsed');
+    arrow.classList.toggle('collapsed');
+  };
+
+  // 打开详情
+  function openDetail(id) {
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+
+    detailPanel.innerHTML = `
+      <h3>${escapeHtml(goal.title)} <span class="goal-score score-${goal.score >= 4 ? 'high' : goal.score === 3 ? 'medium' : 'low'}" style="display:inline-flex;">${goal.score}</span></h3>
+      <label style="font-size:0.75rem;font-weight:600;">最近一步行动</label>
+      <textarea id="editStep1" placeholder="AI分析后可自动填充...">${escapeHtml(goal.step1 || '')}</textarea>
+      <label style="font-size:0.75rem;font-weight:600;">下一步行动</label>
+      <textarea id="editStep2" placeholder="AI分析后可自动填充...">${escapeHtml(goal.step2 || '')}</textarea>
+      <label style="font-size:0.75rem;font-weight:600;">预计完成日期</label>
+      <input type="date" id="editDeadline" value="${goal.deadline || ''}">
+      <label style="font-size:0.75rem;font-weight:600;">所需准备</label>
+      <div class="sub-items">
+        ${['资金','设备','学习','攻略'].map(k => `
+          <div class="sub-item">
+            <span class="sub-item-label">${k}</span>
+            <textarea id="editPrep_${k}">${escapeHtml(goal.prep?.[k] || '')}</textarea>
+          </div>
+        `).join('')}
+      </div>
+      <div class="detail-row">
+        <button class="btn btn-outline" id="aiAnalyzeDetailBtn">AI 分析</button>
+        <button class="btn btn-dark" id="saveDetailBtn">保存</button>
+        <button class="btn btn-outline" id="closeDetailBtn">关闭</button>
+      </div>
+    `;
+
+    detailOverlay.style.display = 'flex';
+
+    // 保存详情
+    document.getElementById('saveDetailBtn').addEventListener('click', () => {
+      goal.step1 = document.getElementById('editStep1').value;
+      goal.step2 = document.getElementById('editStep2').value;
+      goal.deadline = document.getElementById('editDeadline').value;
+      ['资金','设备','学习','攻略'].forEach(k => {
+        goal.prep[k] = document.getElementById('editPrep_' + k).value;
+      });
+      saveAll();
+      renderCategories();
+      detailOverlay.style.display = 'none';
+    });
+
+    // AI分析
+    document.getElementById('aiAnalyzeDetailBtn').addEventListener('click', async () => {
+      if (!apiKey) { alert('请先保存API Key'); return; }
+      const btn = document.getElementById('aiAnalyzeDetailBtn');
+      btn.disabled = true;
+      btn.textContent = '分析中...';
+
+      const prompt = `你是一个人生规划助手。用户设定了最终目标："${goal.title}"。请分析并返回JSON格式结果：
+{
+  "step1": "最近一步行动（一句话，不超过50字）",
+  "step2": "下一步行动（一句话，不超过50字）",
+  "prep": {
+    "资金": "需要多少钱，如何筹集",
+    "设备": "需要什么设备或工具",
+    "学习": "需要学习什么技能",
+    "攻略": "需要搜集什么攻略"
+  }
+}
+只输出JSON，不要其他文字。`;
+
+      try {
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 800 })
+        });
+        if (!resp.ok) throw new Error('API错误');
+        const json = await resp.json();
+        const match = json.choices[0].message.content.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('格式错误');
+        const result = JSON.parse(match[0]);
+
+        if (result.step1) document.getElementById('editStep1').value = result.step1;
+        if (result.step2) document.getElementById('editStep2').value = result.step2;
+        ['资金','设备','学习','攻略'].forEach(k => {
+          if (result.prep && result.prep[k]) document.getElementById('editPrep_' + k).value = result.prep[k];
+        });
+        statusMsg.textContent = 'AI分析完成';
+      } catch(e) {
+        statusMsg.textContent = '分析失败: ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'AI 分析';
+        setTimeout(() => statusMsg.textContent = '', 3000);
+      }
+    });
+
+    document.getElementById('closeDetailBtn').addEventListener('click', () => {
+      detailOverlay.style.display = 'none';
+    });
+  }
+
+  detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) detailOverlay.style.display = 'none'; });
+
+  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // 初始化
+  loadAll();
+  renderCategories();
+})();
+</script>
+</body>
+</html>
